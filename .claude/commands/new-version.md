@@ -1,13 +1,20 @@
 # New Version Release
 
-버전을 올리고 vsix 빌드 파일을 생성합니다.
+Bump version and build vsix file. (No git commit/push)
 
 ## Arguments
 
-- `$ARGUMENTS`: 버전 타입 (patch, minor, major). 기본값: patch
+- `$ARGUMENTS`: Version type (patch, minor, major). Default: patch
 
-## Process
+## Instructions
 
-1. `npm version <type>` 으로 package.json 버전 업데이트
-2. `pnpm dlx @vscode/vsce package` 로 vsix 파일 생성
-3. 생성된 vsix 파일 경로 출력
+Run these commands in order:
+
+```bash
+npm version ${ARGUMENTS:-patch} --no-git-tag-version
+pnpm dlx @vscode/vsce package
+```
+
+After completion, show:
+- Generated vsix file path
+- Upload URL: https://marketplace.visualstudio.com/manage/publishers/Byungho

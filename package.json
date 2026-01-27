@@ -2,7 +2,7 @@
   "name": "claude-code-explorer",
   "displayName": "Explorer for Claude Code",
   "description": "Visualize and manage .claude configuration folders in VS Code. Browse, edit, and organize your Claude Code configurations with ease.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "publisher": "Byungho",
   "icon": "resources/icon.png",
   "engines": {

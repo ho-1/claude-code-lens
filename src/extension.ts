@@ -188,7 +188,6 @@ export function activate(context: vscode.ExtensionContext) {
 
   fileWatcher.onDidCreate(refreshAll);
   fileWatcher.onDidDelete(refreshAll);
-  fileWatcher.onDidChange(refreshAll);
 
   // Watch for workspace folder changes
   const workspaceFolderWatcher = vscode.workspace.onDidChangeWorkspaceFolders(refreshAll);

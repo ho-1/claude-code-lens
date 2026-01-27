@@ -63,11 +63,12 @@ async function findClaudeFolders(workspaceFolder: vscode.WorkspaceFolder): Promi
     });
   }
 
-  // Sort by path depth (root first)
+  // Sort by path depth (root first), then by name
   claudeFolders.sort((a, b) => {
     const depthA = a.claudePath.fsPath.split(path.sep).length;
     const depthB = b.claudePath.fsPath.split(path.sep).length;
-    return depthA - depthB;
+    if (depthA !== depthB) return depthA - depthB;
+    return a.claudePath.fsPath.localeCompare(b.claudePath.fsPath);
   });
 
   return claudeFolders;
