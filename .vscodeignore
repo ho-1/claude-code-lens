@@ -1,0 +1,17 @@
+.vscode/**
+.vscode-test/**
+src/**
+out/**
+node_modules/**
+.gitignore
+*.map
+*.ts
+!*.d.ts
+tsconfig.json
+.eslintrc*
+*.tsbuildinfo
+pnpm-lock.yaml
+.claude/**
+PUBLISHING.md
+tsconfig.test.json
+.pnpm-approve-builds.yaml

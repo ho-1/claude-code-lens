@@ -1,0 +1,169 @@
+{
+  "name": "claude-code-explorer",
+  "displayName": "Claude Code Explorer",
+  "description": "Visualize and manage .claude configuration folders in VS Code. Browse, edit, and organize your Claude Code configurations with ease.",
+  "version": "0.1.0",
+  "publisher": "Byungho",
+  "icon": "resources/icon.png",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other",
+    "Visualization"
+  ],
+  "keywords": [
+    "claude",
+    "claude-code",
+    "anthropic",
+    "ai",
+    "configuration",
+    "config",
+    "viewer"
+  ],
+  "galleryBanner": {
+    "color": "#1a1a2e",
+    "theme": "dark"
+  },
+  "main": "./dist/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "claude-config",
+          "title": "Claude Config",
+          "icon": "resources/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "claude-config": [
+        {
+          "id": "claudeConfigStats",
+          "name": "Overview",
+          "type": "webview"
+        },
+        {
+          "id": "claudeConfigView",
+          "name": "Config Files",
+          "contextualTitle": "Claude Config"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "claudeConfig.refresh",
+        "title": "Refresh",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "claudeConfig.openFile",
+        "title": "Open File"
+      },
+      {
+        "command": "claudeConfig.openDashboard",
+        "title": "Open Dashboard",
+        "icon": "$(dashboard)"
+      },
+      {
+        "command": "claudeConfig.newFile",
+        "title": "New File...",
+        "icon": "$(new-file)"
+      },
+      {
+        "command": "claudeConfig.newFolder",
+        "title": "New Folder...",
+        "icon": "$(new-folder)"
+      },
+      {
+        "command": "claudeConfig.delete",
+        "title": "Delete",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "claudeConfig.rename",
+        "title": "Rename...",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "claudeConfig.expandAll",
+        "title": "Expand All",
+        "icon": "$(expand-all)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "claudeConfig.openDashboard",
+          "when": "view == claudeConfigView",
+          "group": "navigation@1"
+        },
+        {
+          "command": "claudeConfig.refresh",
+          "when": "view == claudeConfigView",
+          "group": "navigation@2"
+        },
+        {
+          "command": "claudeConfig.expandAll",
+          "when": "view == claudeConfigView",
+          "group": "navigation@3"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "claudeConfig.newFile",
+          "when": "view == claudeConfigView && viewItem =~ /claudeFolder|subfolder/",
+          "group": "1_new@1"
+        },
+        {
+          "command": "claudeConfig.newFolder",
+          "when": "view == claudeConfigView && viewItem =~ /claudeFolder|subfolder/",
+          "group": "1_new@2"
+        },
+        {
+          "command": "claudeConfig.rename",
+          "when": "view == claudeConfigView && viewItem =~ /subfolder|configFile/",
+          "group": "2_edit@1"
+        },
+        {
+          "command": "claudeConfig.delete",
+          "when": "view == claudeConfigView && viewItem =~ /subfolder|configFile/",
+          "group": "3_delete@1"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "pnpm run compile",
+    "compile": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node",
+    "compile:test": "tsc -p ./tsconfig.test.json",
+    "watch": "pnpm run compile -- --watch",
+    "pretest": "pnpm run compile && pnpm run compile:test",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js",
+    "test:unit": "mocha --require ts-node/register src/test/suite/*.test.ts"
+  },
+  "devDependencies": {
+    "@types/glob": "^9.0.0",
+    "@types/mocha": "^10.0.6",
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^6.19.0",
+    "@typescript-eslint/parser": "^6.19.0",
+    "@vscode/test-electron": "^2.3.8",
+    "esbuild": "^0.20.0",
+    "eslint": "^8.56.0",
+    "glob": "^13.0.0",
+    "mocha": "^10.2.0",
+    "typescript": "^5.3.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ho-1/claude-code-explorer"
+  },
+  "bugs": {
+    "url": "https://github.com/ho-1/claude-code-explorer/issues"
+  },
+  "homepage": "https://github.com/ho-1/claude-code-explorer#readme",
+  "license": "MIT"
+}
