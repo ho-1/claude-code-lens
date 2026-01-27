@@ -28,12 +28,6 @@
 - **Config Files Panel** — TreeView of all `.claude` folders in workspace
 - **Dashboard** — Card view with file counts per folder
 
-## Installation
-
-```
-ext install Byungho.claude-code-explorer
-```
-
 ## License
 
 [MIT](LICENSE)
