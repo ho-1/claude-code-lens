@@ -86,18 +86,6 @@ src/
 - Stats overview (files, skills, commands, agents, hooks, configs)
 - Permission tags display
 
-### Frontmatter Support
-
-```yaml
----
-icon: 🚀
-name: Display Name
-description: Short description
-model: sonnet
-tools: [Bash, Read, Write]
----
-```
-
 ## Publishing
 
 ```bash
