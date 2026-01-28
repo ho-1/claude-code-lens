@@ -36,6 +36,35 @@ body {
   font-size: 12px;
 }
 
+.guide-links {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--vscode-widget-border, rgba(255,255,255,0.1));
+}
+
+.guide-links .guide-label {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.guide-links .guide-link {
+  font-size: 11px;
+  color: var(--vscode-textLink-foreground);
+  text-decoration: none;
+  padding: 4px 10px;
+  border-radius: 4px;
+  background: var(--vscode-input-background);
+  transition: all 0.15s;
+}
+
+.guide-links .guide-link:hover {
+  background: var(--vscode-list-hoverBackground);
+  text-decoration: underline;
+}
+
 /* Stats Bar */
 .stats-bar {
   display: inline-flex;
@@ -53,10 +82,65 @@ body {
   padding: 8px 14px;
   border-radius: 6px;
   transition: background 0.15s;
+  position: relative;
 }
 
 .stat-item:hover {
   background: var(--vscode-list-hoverBackground);
+}
+
+.stat-item.clickable {
+  cursor: pointer;
+}
+
+.stat-item.clickable:hover {
+  background: var(--vscode-list-activeSelectionBackground);
+}
+
+.stat-item.active {
+  background: var(--vscode-list-activeSelectionBackground);
+}
+
+/* Stat Dropdown */
+.stat-dropdown {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 180px;
+  max-height: 200px;
+  overflow-y: auto;
+  background: var(--vscode-dropdown-background, var(--vscode-editor-background));
+  border: 1px solid var(--vscode-dropdown-border, var(--vscode-widget-border));
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  margin-top: 4px;
+}
+
+.stat-dropdown.show {
+  display: block;
+}
+
+.stat-dropdown .dropdown-item {
+  padding: 8px 12px;
+  font-size: 12px;
+  font-family: var(--vscode-editor-font-family, monospace);
+  color: var(--vscode-foreground);
+  cursor: default;
+  transition: background 0.1s;
+}
+
+.stat-dropdown .dropdown-item:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.stat-dropdown .dropdown-empty {
+  padding: 12px;
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  font-style: italic;
+  text-align: center;
 }
 
 .stat-icon {
@@ -280,6 +364,18 @@ body {
   color: #F97316;
 }
 
+.card-metadata-item.hooks {
+  color: #EF4444;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.card-metadata-item.hooks svg {
+  width: 10px;
+  height: 10px;
+}
+
 /* Permissions Tags */
 .permissions-section {
   margin-top: 8px;
@@ -431,44 +527,110 @@ body {
   font-size: 12px;
 }
 
-/* Add CLAUDE.md Banner */
-.add-claude-md-banner {
+/* Action Banner (clickable) */
+.action-banner {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 12px 16px;
-  margin-bottom: 16px;
-  background: rgba(249, 115, 22, 0.08);
-  border: 1px dashed rgba(249, 115, 22, 0.3);
+  padding: 10px 14px;
   border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
 
-.add-claude-md-banner .banner-icon {
+.action-banner .banner-icon {
   display: flex;
   align-items: center;
   justify-content: center;
   opacity: 0.7;
 }
 
-.add-claude-md-banner .banner-icon svg {
+.action-banner .banner-icon svg {
   width: 18px;
   height: 18px;
 }
 
-.add-claude-md-banner .banner-text {
+.action-banner .banner-text {
   flex: 1;
   font-size: 12px;
   color: var(--vscode-descriptionForeground);
 }
 
-.add-claude-md-banner .banner-btn {
-  padding: 4px 12px;
+.action-banner .banner-action {
+  font-size: 11px;
+  font-weight: 500;
+  opacity: 0.7;
+  transition: opacity 0.15s;
+}
+
+.action-banner:hover .banner-action {
+  opacity: 1;
+}
+
+/* Add CLAUDE.md Banner */
+.add-claude-md-banner {
+  margin-bottom: 16px;
+  background: rgba(249, 115, 22, 0.08);
+  border: 1px dashed rgba(249, 115, 22, 0.3);
+}
+
+.add-claude-md-banner:hover {
   background: rgba(249, 115, 22, 0.15);
-  border-color: rgba(249, 115, 22, 0.4);
+  border-color: rgba(249, 115, 22, 0.5);
+}
+
+.add-claude-md-banner .banner-action {
   color: #F97316;
 }
 
-.add-claude-md-banner .banner-btn:hover {
-  background: rgba(249, 115, 22, 0.25);
+/* Missing Folders Guide */
+.missing-folders-guide {
+  margin-bottom: 16px;
+  padding: 12px;
+  background: var(--vscode-input-background);
+  border-radius: 8px;
+}
+
+.missing-folders-guide .guide-label {
+  display: block;
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  margin-bottom: 8px;
+}
+
+.missing-folders-guide .guide-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Add Folder Banner */
+.add-folder-banner {
+  padding: 8px 12px;
+  background: var(--vscode-editor-background);
+  border: 1px dashed var(--vscode-widget-border, rgba(255,255,255,0.15));
+  border-radius: 6px;
+  flex: 0 0 auto;
+}
+
+.add-folder-banner:hover {
+  background: var(--vscode-list-hoverBackground);
+  border-color: var(--vscode-focusBorder);
+}
+
+.add-folder-banner .banner-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.add-folder-banner .banner-text {
+  font-size: 11px;
+  font-family: var(--vscode-editor-font-family);
+}
+
+.add-folder-banner .banner-action {
+  color: var(--vscode-textLink-foreground);
+  font-size: 14px;
+  font-weight: 600;
 }
 `;

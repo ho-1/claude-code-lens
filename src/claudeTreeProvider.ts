@@ -24,13 +24,6 @@ export class ClaudeTreeProvider implements vscode.TreeDataProvider<TreeItem> {
     return element;
   }
 
-  expandAll(): void {
-    for (const key of this._expandedState.keys()) {
-      this._expandedState.set(key, true);
-    }
-    this._onDidChangeTreeData.fire();
-  }
-
   collapseAll(): void {
     for (const key of this._expandedState.keys()) {
       this._expandedState.set(key, false);
@@ -141,12 +134,15 @@ export class ClaudeTreeProvider implements vscode.TreeDataProvider<TreeItem> {
     if (frontmatter?.permissionMode) {
       tooltipContent += `**Permission:** ${frontmatter.permissionMode}\n\n`;
     }
+    if (frontmatter?.hooksCount) {
+      tooltipContent += `**Hooks:** ${frontmatter.hooksCount} configured\n\n`;
+    }
     tooltipContent += `*${configItem.relativePath}*`;
 
     item.tooltip = new vscode.MarkdownString(tooltipContent);
     item.iconPath = getThemeIcon(configItem.name, parentFolder);
     item.command = {
-      command: 'claudeConfig.openFile',
+      command: 'claudeLens.openFile',
       title: 'Open File',
       arguments: [configItem.uri],
     };

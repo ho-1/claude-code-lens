@@ -139,6 +139,20 @@ function parseJsonFile(content: string): ParsedFile {
       frontmatter.model = json.model;
     }
 
+    // Count hooks
+    if (json.hooks && typeof json.hooks === 'object') {
+      let hooksCount = 0;
+      for (const event of Object.keys(json.hooks)) {
+        const matchers = json.hooks[event];
+        if (Array.isArray(matchers)) {
+          hooksCount += matchers.length;
+        }
+      }
+      if (hooksCount > 0) {
+        frontmatter.hooksCount = hooksCount;
+      }
+    }
+
     return {
       frontmatter,
       content: '',

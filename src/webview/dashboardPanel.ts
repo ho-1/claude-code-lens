@@ -5,7 +5,7 @@
 import * as vscode from 'vscode';
 import { ScanResult } from '../types';
 import { getHtmlContent } from './htmlRenderer';
-import { createClaudeMd } from './actions';
+import { createClaudeMd, createFolder } from './actions';
 
 let currentPanel: vscode.WebviewPanel | undefined;
 
@@ -24,8 +24,8 @@ export function createDashboardPanel(
   }
 
   const panel = vscode.window.createWebviewPanel(
-    'claudeConfigDashboard',
-    'Claude Code Dashboard',
+    'claudeLensDashboard',
+    'Claude Code Lens',
     vscode.ViewColumn.One,
     {
       enableScripts: true,
@@ -47,6 +47,11 @@ export function createDashboardPanel(
         switch (message.action) {
           case 'addClaudeMd':
             await createClaudeMd(message.path);
+            break;
+          case 'addFolder':
+            if (message.folderName) {
+              await createFolder(message.path, message.folderName);
+            }
             break;
         }
         // Refresh dashboard after file creation

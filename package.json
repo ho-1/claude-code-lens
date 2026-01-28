@@ -1,8 +1,8 @@
 {
-  "name": "claude-code-explorer",
-  "displayName": "Explorer for Claude Code",
+  "name": "claude-code-lens",
+  "displayName": "Claude Code Lens",
   "description": "Visualize and manage .claude configuration folders in VS Code. Browse, edit, and organize your Claude Code configurations with ease.",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "publisher": "Byungho",
   "icon": "resources/icon.png",
   "engines": {
@@ -17,7 +17,7 @@
     "claude-code",
     "anthropic",
     "ai",
-    "explorer"
+    "lens"
   ],
   "galleryBanner": {
     "color": "#1a1a2e",
@@ -28,103 +28,98 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "claude-config",
-          "title": "Claude Config",
+          "id": "claude-lens",
+          "title": "Claude Lens",
           "icon": "resources/icon.svg"
         }
       ]
     },
     "views": {
-      "claude-config": [
+      "claude-lens": [
         {
-          "id": "claudeConfigStats",
+          "id": "claudeLensStats",
           "name": "Overview",
           "type": "webview"
         },
         {
-          "id": "claudeConfigView",
+          "id": "claudeLensView",
           "name": "Config Files"
         }
       ]
     },
     "commands": [
       {
-        "command": "claudeConfig.refresh",
+        "command": "claudeLens.refresh",
         "title": "Refresh",
         "icon": "$(refresh)"
       },
       {
-        "command": "claudeConfig.openFile",
+        "command": "claudeLens.openFile",
         "title": "Open File"
       },
       {
-        "command": "claudeConfig.openDashboard",
+        "command": "claudeLens.openDashboard",
         "title": "Open Dashboard",
         "icon": "$(dashboard)"
       },
       {
-        "command": "claudeConfig.newFile",
+        "command": "claudeLens.newFile",
         "title": "New File...",
         "icon": "$(new-file)"
       },
       {
-        "command": "claudeConfig.newFolder",
+        "command": "claudeLens.newFolder",
         "title": "New Folder...",
         "icon": "$(new-folder)"
       },
       {
-        "command": "claudeConfig.delete",
+        "command": "claudeLens.delete",
         "title": "Delete",
         "icon": "$(trash)"
       },
       {
-        "command": "claudeConfig.rename",
+        "command": "claudeLens.rename",
         "title": "Rename...",
         "icon": "$(edit)"
       },
       {
-        "command": "claudeConfig.expandAll",
-        "title": "Expand All",
-        "icon": "$(expand-all)"
+        "command": "claudeLens.copyCheckPrompt",
+        "title": "Copy Check Prompt",
+        "icon": "$(checklist)"
       }
     ],
     "menus": {
       "view/title": [
         {
-          "command": "claudeConfig.openDashboard",
-          "when": "view == claudeConfigView",
+          "command": "claudeLens.openDashboard",
+          "when": "view == claudeLensView || view == claudeLensStats",
           "group": "navigation@1"
-        },
-        {
-          "command": "claudeConfig.refresh",
-          "when": "view == claudeConfigView",
-          "group": "navigation@2"
-        },
-        {
-          "command": "claudeConfig.expandAll",
-          "when": "view == claudeConfigView",
-          "group": "navigation@3"
         }
       ],
       "view/item/context": [
         {
-          "command": "claudeConfig.newFile",
-          "when": "view == claudeConfigView && viewItem =~ /claudeFolder|subfolder/",
+          "command": "claudeLens.copyCheckPrompt",
+          "when": "view == claudeLensView && viewItem =~ /claudeFolder|subfolder/",
+          "group": "0_check@1"
+        },
+        {
+          "command": "claudeLens.newFile",
+          "when": "view == claudeLensView && viewItem =~ /claudeFolder|subfolder/",
           "group": "1_new@1"
         },
         {
-          "command": "claudeConfig.newFolder",
-          "when": "view == claudeConfigView && viewItem =~ /claudeFolder|subfolder/",
+          "command": "claudeLens.newFolder",
+          "when": "view == claudeLensView && viewItem =~ /claudeFolder|subfolder/",
           "group": "1_new@2"
         },
         {
-          "command": "claudeConfig.rename",
-          "when": "view == claudeConfigView && viewItem =~ /subfolder|configFile/",
+          "command": "claudeLens.rename",
+          "when": "view == claudeLensView && viewItem =~ /subfolder|configFile/",
           "group": "2_edit@1"
         },
         {
-          "command": "claudeConfig.delete",
-          "when": "view == claudeConfigView && viewItem =~ /subfolder|configFile/",
+          "command": "claudeLens.delete",
+          "when": "view == claudeLensView && viewItem =~ /subfolder|configFile/",
           "group": "3_delete@1"
         }
       ]
@@ -156,11 +151,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/ho-1/claude-code-explorer"
+    "url": "https://github.com/ho-1/claude-code-lens"
   },
   "bugs": {
-    "url": "https://github.com/ho-1/claude-code-explorer/issues"
+    "url": "https://github.com/ho-1/claude-code-lens/issues"
   },
-  "homepage": "https://github.com/ho-1/claude-code-explorer#readme",
+  "homepage": "https://github.com/ho-1/claude-code-lens#readme",
   "license": "MIT"
 }

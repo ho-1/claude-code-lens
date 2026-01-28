@@ -51,6 +51,10 @@ function getSvgIconForCategory(category: FolderCategory): string {
       return SVG_ICONS.terminal(COLORS.terminal);
     case 'hooks':
       return SVG_ICONS.bolt(COLORS.bolt);
+    case 'rules':
+      return SVG_ICONS.book(COLORS.book);
+    default:
+      return SVG_ICONS.file(COLORS.file);
   }
 }
 
@@ -82,6 +86,10 @@ function getCategoryColor(category: FolderCategory): string {
       return COLORS.terminal;
     case 'hooks':
       return COLORS.bolt;
+    case 'rules':
+      return COLORS.book;
+    default:
+      return COLORS.file;
   }
 }
 
@@ -146,6 +154,13 @@ function getThemeIconForCategory(category: FolderCategory): vscode.ThemeIcon {
         THEME_ICON_NAMES.bolt,
         new vscode.ThemeColor(THEME_COLORS.bolt)
       );
+    case 'rules':
+      return new vscode.ThemeIcon(
+        THEME_ICON_NAMES.book,
+        new vscode.ThemeColor(THEME_COLORS.book)
+      );
+    default:
+      return new vscode.ThemeIcon(THEME_ICON_NAMES.file);
   }
 }
 
@@ -163,7 +178,10 @@ export function getThemeFolderIcon(folderName: string): vscode.ThemeIcon {
     );
   }
 
-  return new vscode.ThemeIcon(THEME_ICON_NAMES.folder);
+  return new vscode.ThemeIcon(
+    THEME_ICON_NAMES.folder,
+    new vscode.ThemeColor('descriptionForeground')
+  );
 }
 
 /**
@@ -179,5 +197,9 @@ function getThemeColorForCategory(category: FolderCategory): string {
       return THEME_COLORS.terminal;
     case 'hooks':
       return THEME_COLORS.bolt;
+    case 'rules':
+      return THEME_COLORS.book;
+    default:
+      return THEME_COLORS.gear;
   }
 }

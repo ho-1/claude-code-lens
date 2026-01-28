@@ -4,21 +4,23 @@ import { ClaudeTreeProvider, TreeItem } from './claudeTreeProvider';
 import { StatsViewProvider } from './statsViewProvider';
 import { createDashboardPanel, updateDashboardPanel, disposeDashboardPanel } from './webview';
 import { scanWorkspace } from './claudeScanner';
+import { CHECK_PROMPTS } from './constants/checkPrompts';
 
 let fileWatcher: vscode.FileSystemWatcher | undefined;
+let mcpWatcher: vscode.FileSystemWatcher | undefined;
 let treeProvider: ClaudeTreeProvider;
 let statsProvider: StatsViewProvider;
 let treeView: vscode.TreeView<TreeItem>;
 
 export function activate(context: vscode.ExtensionContext) {
-  console.log('Claude Code Explorer is now active');
+  console.log('Claude Code Lens is now active');
 
   // Create providers
   treeProvider = new ClaudeTreeProvider();
   statsProvider = new StatsViewProvider(context.extensionUri);
 
   // Create TreeView with reveal API and multi-select
-  treeView = vscode.window.createTreeView('claudeConfigView', {
+  treeView = vscode.window.createTreeView('claudeLensView', {
     treeDataProvider: treeProvider,
     showCollapseAll: true,
     canSelectMany: true,
@@ -34,10 +36,10 @@ export function activate(context: vscode.ExtensionContext) {
   refreshAll();
 
   // Register commands
-  const refreshCommand = vscode.commands.registerCommand('claudeConfig.refresh', refreshAll);
+  const refreshCommand = vscode.commands.registerCommand('claudeLens.refresh', refreshAll);
 
   const openFileCommand = vscode.commands.registerCommand(
-    'claudeConfig.openFile',
+    'claudeLens.openFile',
     async (uri: vscode.Uri) => {
       if (uri) {
         const doc = await vscode.workspace.openTextDocument(uri);
@@ -47,7 +49,7 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   const openDashboardCommand = vscode.commands.registerCommand(
-    'claudeConfig.openDashboard',
+    'claudeLens.openDashboard',
     async () => {
       let scanResult = treeProvider.getScanResult();
       if (!scanResult) {
@@ -59,7 +61,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   // New File command
   const newFileCommand = vscode.commands.registerCommand(
-    'claudeConfig.newFile',
+    'claudeLens.newFile',
     async (item: TreeItem) => {
       const targetPath = getTargetPath(item);
       if (!targetPath) return;
@@ -92,7 +94,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   // New Folder command
   const newFolderCommand = vscode.commands.registerCommand(
-    'claudeConfig.newFolder',
+    'claudeLens.newFolder',
     async (item: TreeItem) => {
       const targetPath = getTargetPath(item);
       if (!targetPath) return;
@@ -119,7 +121,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Delete command
   const deleteCommand = vscode.commands.registerCommand(
-    'claudeConfig.delete',
+    'claudeLens.delete',
     async (item: TreeItem) => {
       const items = treeView.selection.length > 1 ? treeView.selection : [item];
       const names = items.map(i => i.configItem?.name || i.label).join(', ');
@@ -146,7 +148,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Rename command
   const renameCommand = vscode.commands.registerCommand(
-    'claudeConfig.rename',
+    'claudeLens.rename',
     async (item: TreeItem) => {
       if (!item.configItem?.uri) return;
 
@@ -175,19 +177,38 @@ export function activate(context: vscode.ExtensionContext) {
     }
   );
 
-  // Expand All command
-  const expandAllCommand = vscode.commands.registerCommand(
-    'claudeConfig.expandAll',
-    () => {
-      treeProvider.expandAll();
+  // Copy Check Prompt command
+  const copyCheckPromptCommand = vscode.commands.registerCommand(
+    'claudeLens.copyCheckPrompt',
+    async (item: TreeItem) => {
+      let promptKey: string;
+
+      if (item.contextValue === 'claudeFolder') {
+        promptKey = 'claudeFolder';
+      } else if (item.contextValue === 'subfolder' && item.configItem) {
+        promptKey = item.configItem.name.toLowerCase();
+      } else {
+        return;
+      }
+
+      const prompt = CHECK_PROMPTS[promptKey];
+      if (prompt) {
+        await vscode.env.clipboard.writeText(prompt);
+        vscode.window.showInformationMessage('Check prompt copied!');
+      }
     }
   );
 
   // File system watcher for .claude folders
   fileWatcher = vscode.workspace.createFileSystemWatcher('**/.claude/**');
-
   fileWatcher.onDidCreate(refreshAll);
   fileWatcher.onDidDelete(refreshAll);
+
+  // File system watcher for .mcp.json
+  mcpWatcher = vscode.workspace.createFileSystemWatcher('**/.mcp.json');
+  mcpWatcher.onDidCreate(refreshAll);
+  mcpWatcher.onDidChange(refreshAll);
+  mcpWatcher.onDidDelete(refreshAll);
 
   // Watch for workspace folder changes
   const workspaceFolderWatcher = vscode.workspace.onDidChangeWorkspaceFolders(refreshAll);
@@ -202,8 +223,9 @@ export function activate(context: vscode.ExtensionContext) {
     newFolderCommand,
     deleteCommand,
     renameCommand,
-    expandAllCommand,
+    copyCheckPromptCommand,
     fileWatcher,
+    mcpWatcher,
     workspaceFolderWatcher,
     { dispose: disposeDashboardPanel }
   );
@@ -245,6 +267,9 @@ async function refreshAll(): Promise<void> {
 export function deactivate() {
   if (fileWatcher) {
     fileWatcher.dispose();
+  }
+  if (mcpWatcher) {
+    mcpWatcher.dispose();
   }
   disposeDashboardPanel();
 }

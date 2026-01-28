@@ -5,16 +5,16 @@ suite('Extension Test Suite', () => {
   vscode.window.showInformationMessage('Start all tests.');
 
   test('Extension should be present', () => {
-    assert.ok(vscode.extensions.getExtension('byungho.claude-code-explorer'));
+    assert.ok(vscode.extensions.getExtension('byungho.claude-code-lens'));
   });
 
-  test('Should register claudeConfig.refresh command', async () => {
+  test('Should register claudeLens.refresh command', async () => {
     const commands = await vscode.commands.getCommands(true);
-    assert.ok(commands.includes('claudeConfig.refresh'));
+    assert.ok(commands.includes('claudeLens.refresh'));
   });
 
-  test('Should register claudeConfig.openFile command', async () => {
+  test('Should register claudeLens.openFile command', async () => {
     const commands = await vscode.commands.getCommands(true);
-    assert.ok(commands.includes('claudeConfig.openFile'));
+    assert.ok(commands.includes('claudeLens.openFile'));
   });
 });

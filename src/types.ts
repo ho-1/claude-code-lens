@@ -14,6 +14,7 @@ export interface Frontmatter {
   model?: string;
   permissionMode?: string;
   permissions?: Permissions;
+  hooksCount?: number;  // For settings.json files
 }
 
 export interface ParsedFile {
@@ -36,6 +37,9 @@ export interface ClaudeFolder {
   claudePath: vscode.Uri;
   items: ClaudeConfigItem[];
   hasClaudeMd: boolean;
+  existingFolders: string[];
+  mcpConfig?: ClaudeConfigItem;
+  hooksCount: number;
 }
 
 export interface ClaudeStats {
@@ -45,6 +49,19 @@ export interface ClaudeStats {
   agents: number;
   hooks: number;
   configs: number;
+  skillItems: string[];
+  commandItems: string[];
+  agentItems: string[];
+}
+
+// Hooks configuration structure from settings.json
+export interface HookMatcher {
+  matcher: string;
+  hooks: Array<{ type: string; command: string }>;
+}
+
+export interface HooksConfig {
+  [event: string]: HookMatcher[];
 }
 
 export interface ScanResult {

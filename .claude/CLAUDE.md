@@ -1,10 +1,10 @@
 ---
 icon: 📋
 name: Project Guide
-description: Claude Code Explorer development guide
+description: Claude Code Lens development guide
 ---
 
-# Claude Code Explorer
+# Claude Code Lens
 
 VS Code extension that visualizes `.claude` folder configuration files in the Activity Bar.
 
@@ -83,7 +83,7 @@ src/
 ### Dashboard View
 
 - Card-based layout for all config files
-- Stats overview (files, skills, commands, agents, hooks, configs)
+- Stats overview (files, skills, commands, agents, configs)
 - Permission tags display
 
 ## Publishing

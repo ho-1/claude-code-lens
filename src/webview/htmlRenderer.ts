@@ -6,6 +6,7 @@ import * as path from 'path';
 import { ClaudeFolder, ClaudeConfigItem, ScanResult } from '../types';
 import { COLORS } from '../constants/colors';
 import { SVG_ICONS } from '../constants/icons';
+import { FOLDER_CATEGORIES } from '../constants/folderCategories';
 import { getSvgIcon, getSvgFolderIcon } from '../utils/iconUtils';
 import { DASHBOARD_STYLES } from './styles';
 
@@ -29,6 +30,13 @@ export function getHtmlContent(result: ScanResult): string {
   <div class="header">
     <div class="title">Claude Code Dashboard</div>
     <div class="subtitle">View and manage your .claude configuration files</div>
+    <div class="guide-links">
+      <span class="guide-label">Docs:</span>
+      <a href="https://docs.anthropic.com/en/docs/claude-code/skills" class="guide-link">Skills</a>
+      <a href="https://docs.anthropic.com/en/docs/claude-code/hooks" class="guide-link">Hooks</a>
+      <a href="https://docs.anthropic.com/en/docs/claude-code/mcp" class="guide-link">MCP</a>
+      <a href="https://docs.anthropic.com/en/docs/claude-code/sub-agents" class="guide-link">Agents</a>
+    </div>
   </div>
 
   ${renderStatsBar(stats)}
@@ -85,6 +93,45 @@ export function getHtmlContent(result: ScanResult): string {
       });
     });
 
+    // Banner click handler (entire banner is clickable)
+    document.querySelectorAll('.action-banner[data-action]').forEach(banner => {
+      banner.addEventListener('click', () => {
+        vscode.postMessage({
+          type: 'folderAction',
+          action: banner.dataset.action,
+          path: banner.dataset.path,
+          folderName: banner.dataset.folderName
+        });
+      });
+    });
+
+    // Stats dropdown handler
+    document.querySelectorAll('.stat-item.clickable').forEach(item => {
+      item.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const dropdown = item.querySelector('.stat-dropdown');
+        const isOpen = dropdown.classList.contains('show');
+
+        // Close all dropdowns
+        document.querySelectorAll('.stat-dropdown.show').forEach(d => d.classList.remove('show'));
+        document.querySelectorAll('.stat-item.active').forEach(i => i.classList.remove('active'));
+
+        // Toggle current dropdown
+        if (!isOpen) {
+          dropdown.classList.add('show');
+          item.classList.add('active');
+        }
+      });
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.stat-item.clickable')) {
+        document.querySelectorAll('.stat-dropdown.show').forEach(d => d.classList.remove('show'));
+        document.querySelectorAll('.stat-item.active').forEach(i => i.classList.remove('active'));
+      }
+    });
+
   </script>
 </body>
 </html>`;
@@ -94,6 +141,10 @@ export function getHtmlContent(result: ScanResult): string {
  * Render the stats bar
  */
 function renderStatsBar(stats: ScanResult['stats']): string {
+  const skillsFormatted = stats.skillItems.map(s => `/${s}`);
+  const commandsFormatted = stats.commandItems.map(c => `/${c}`);
+  const agentsFormatted = stats.agentItems;
+
   return `
   <div class="stats-bar">
     <div class="stat-item">
@@ -101,20 +152,38 @@ function renderStatsBar(stats: ScanResult['stats']): string {
       <span class="stat-value">${stats.totalFiles}</span>
       <span class="stat-label">Files</span>
     </div>
-    <div class="stat-item">
+    <div class="stat-item clickable" data-dropdown="skills">
       <span class="stat-icon">${SVG_ICONS.target(COLORS.target)}</span>
       <span class="stat-value">${stats.skills}</span>
       <span class="stat-label">Skills</span>
+      <div class="stat-dropdown" id="dropdown-skills">
+        ${skillsFormatted.length > 0
+          ? skillsFormatted.map(s => `<div class="dropdown-item">${escapeHtml(s)}</div>`).join('')
+          : '<div class="dropdown-empty">No skills found</div>'
+        }
+      </div>
     </div>
-    <div class="stat-item">
+    <div class="stat-item clickable" data-dropdown="commands">
       <span class="stat-icon">${SVG_ICONS.terminal(COLORS.terminal)}</span>
       <span class="stat-value">${stats.commands}</span>
       <span class="stat-label">Commands</span>
+      <div class="stat-dropdown" id="dropdown-commands">
+        ${commandsFormatted.length > 0
+          ? commandsFormatted.map(c => `<div class="dropdown-item">${escapeHtml(c)}</div>`).join('')
+          : '<div class="dropdown-empty">No commands found</div>'
+        }
+      </div>
     </div>
-    <div class="stat-item">
+    <div class="stat-item clickable" data-dropdown="agents">
       <span class="stat-icon">${SVG_ICONS.robot(COLORS.robot)}</span>
       <span class="stat-value">${stats.agents}</span>
       <span class="stat-label">Agents</span>
+      <div class="stat-dropdown" id="dropdown-agents">
+        ${agentsFormatted.length > 0
+          ? agentsFormatted.map(a => `<div class="dropdown-item">${escapeHtml(a)}</div>`).join('')
+          : '<div class="dropdown-empty">No agents found</div>'
+        }
+      </div>
     </div>
     <div class="stat-item">
       <span class="stat-icon">${SVG_ICONS.bolt(COLORS.bolt)}</span>
@@ -139,9 +208,15 @@ function renderFolder(folder: ClaudeFolder, index: number): string {
   );
   const displayPath = relativePath || '.claude';
   const isRoot = !relativePath || relativePath === '.claude';
-  const fileCount = countFiles(folder.items);
+  const fileCount = countFiles(folder.items) + (folder.mcpConfig ? 1 : 0);
   const folderIcon = SVG_ICONS.folder(COLORS.folder);
   const claudePath = folder.claudePath.fsPath;
+
+  // Find missing folders (only suggest agents, skills, commands)
+  const SUGGESTABLE_FOLDERS = ['agents', 'skills', 'commands'] as const;
+  const missingFolders = SUGGESTABLE_FOLDERS.filter(
+    cat => !folder.existingFolders.includes(cat)
+  );
 
   return `
   <div class="folder-section" data-folder="${index}">
@@ -153,12 +228,24 @@ function renderFolder(folder: ClaudeFolder, index: number): string {
     </div>
     <div class="folder-content collapsed">
       ${!folder.hasClaudeMd ? `
-      <div class="add-claude-md-banner">
+      <div class="action-banner add-claude-md-banner" data-action="addClaudeMd" data-path="${escapeHtml(claudePath)}">
         <span class="banner-icon">${SVG_ICONS.document(COLORS.document)}</span>
         <span class="banner-text">No CLAUDE.md in this folder</span>
-        <button class="folder-action-btn banner-btn" data-action="addClaudeMd" data-path="${escapeHtml(claudePath)}">+ CLAUDE.md</button>
+        <span class="banner-action">+ Add CLAUDE.md</span>
       </div>` : ''}
-      ${renderItems(folder.items)}
+      ${missingFolders.length > 0 ? `
+      <div class="missing-folders-guide">
+        <span class="guide-label">Add folders:</span>
+        <div class="guide-buttons">
+          ${missingFolders.map(folderName => `
+          <div class="action-banner add-folder-banner" data-action="addFolder" data-path="${escapeHtml(claudePath)}" data-folder-name="${folderName}">
+            <span class="banner-icon">${getSvgFolderIcon(folderName, true)}</span>
+            <span class="banner-text">${folderName}/</span>
+            <span class="banner-action">+</span>
+          </div>`).join('')}
+        </div>
+      </div>` : ''}
+      ${renderItems(folder.items, undefined, folder.mcpConfig ? [folder.mcpConfig] : undefined)}
     </div>
   </div>`;
 }
@@ -181,8 +268,11 @@ function countFiles(items: ClaudeConfigItem[]): number {
 /**
  * Render items (files and subfolders)
  */
-function renderItems(items: ClaudeConfigItem[], parentFolder?: string): string {
-  const files = items.filter(i => i.type === 'file');
+function renderItems(items: ClaudeConfigItem[], parentFolder?: string, extraFiles?: ClaudeConfigItem[]): string {
+  let files = items.filter(i => i.type === 'file');
+  if (extraFiles) {
+    files = [...files, ...extraFiles];
+  }
   const folders = items.filter(i => i.type === 'folder');
 
   let html = '';
@@ -246,6 +336,9 @@ function renderCard(item: ClaudeConfigItem, parentFolder?: string): string {
   }
   if (frontmatter.permissionMode) {
     metadataItems.push(`<span class="card-metadata-item permission">${escapeHtml(frontmatter.permissionMode)}</span>`);
+  }
+  if (frontmatter.hooksCount) {
+    metadataItems.push(`<span class="card-metadata-item hooks">${SVG_ICONS.bolt(COLORS.bolt)} ${frontmatter.hooksCount} hooks</span>`);
   }
 
   // Build allowed-tools section (for skills)

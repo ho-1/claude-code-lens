@@ -11,6 +11,7 @@ export const COLORS = {
   target: '#3B82F6', // blue - skills/
   terminal: '#10B981', // green - commands/
   bolt: '#EF4444', // red - hooks/
+  book: '#F59E0B', // amber - rules/
   folder: '#FBBF24', // yellow - folders
   file: '#9CA3AF', // default gray
 
@@ -29,6 +30,7 @@ export const THEME_COLORS = {
   target: 'charts.blue',
   terminal: 'charts.green',
   bolt: 'charts.red',
+  book: 'charts.yellow',
   document: 'charts.orange',
   gear: 'descriptionForeground',
 } as const;

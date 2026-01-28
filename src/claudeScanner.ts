@@ -1,13 +1,13 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { ClaudeFolder, ClaudeConfigItem, ScanResult } from './types';
+import { ClaudeFolder, ClaudeConfigItem, ScanResult, HooksConfig } from './types';
 import { parseFrontmatter } from './frontmatterParser';
 import { calculateStats } from './utils/statsCalculator';
 
 export async function scanWorkspace(): Promise<ScanResult> {
   const workspaceFolders = vscode.workspace.workspaceFolders;
   if (!workspaceFolders) {
-    return { folders: [], stats: { totalFiles: 0, skills: 0, commands: 0, agents: 0, hooks: 0, configs: 0 } };
+    return { folders: [], stats: { totalFiles: 0, skills: 0, commands: 0, agents: 0, hooks: 0, configs: 0, skillItems: [], commandItems: [], agentItems: [] } };
   }
 
   const folders: ClaudeFolder[] = [];
@@ -55,11 +55,36 @@ async function findClaudeFolders(workspaceFolder: vscode.WorkspaceFolder): Promi
     const claudeUri = vscode.Uri.file(folderPath);
     const items = await scanClaudeFolder(claudeUri, workspaceFolder);
     const hasClaudeMd = await checkFileExists(vscode.Uri.joinPath(claudeUri, 'CLAUDE.md'));
+    const existingFolders = items
+      .filter(item => item.type === 'folder')
+      .map(item => item.name.toLowerCase());
+
+    // Check for .mcp.json in the parent directory of .claude folder
+    const parentDir = vscode.Uri.file(path.dirname(folderPath));
+    const mcpJsonPath = vscode.Uri.joinPath(parentDir, '.mcp.json');
+    let mcpConfig: ClaudeConfigItem | undefined;
+    if (await checkFileExists(mcpJsonPath)) {
+      const parsed = await parseFile(mcpJsonPath);
+      mcpConfig = {
+        uri: mcpJsonPath,
+        type: 'file',
+        name: '.mcp.json',
+        relativePath: path.relative(workspaceFolder.uri.fsPath, mcpJsonPath.fsPath),
+        parsed,
+      };
+    }
+
+    // Count hooks from settings.json files
+    const hooksCount = await countHooksInFolder(items);
+
     claudeFolders.push({
       workspaceFolder,
       claudePath: claudeUri,
       items,
       hasClaudeMd,
+      existingFolders,
+      mcpConfig,
+      hooksCount,
     });
   }
 
@@ -200,5 +225,37 @@ async function parseFile(uri: vscode.Uri): Promise<ClaudeConfigItem['parsed']> {
       preview: '',
     };
   }
+}
+
+/**
+ * Count hooks from settings.json files in a .claude folder
+ */
+async function countHooksInFolder(items: ClaudeConfigItem[]): Promise<number> {
+  let count = 0;
+
+  for (const item of items) {
+    if (item.type === 'file' && item.name.toLowerCase().startsWith('settings') && item.name.endsWith('.json')) {
+      try {
+        const content = await vscode.workspace.fs.readFile(item.uri);
+        const text = Buffer.from(content).toString('utf8');
+        const json = JSON.parse(text);
+
+        if (json.hooks && typeof json.hooks === 'object') {
+          const hooksConfig = json.hooks as HooksConfig;
+          // Count total hook matchers across all events
+          for (const event of Object.keys(hooksConfig)) {
+            const matchers = hooksConfig[event];
+            if (Array.isArray(matchers)) {
+              count += matchers.length;
+            }
+          }
+        }
+      } catch {
+        // Failed to parse settings.json
+      }
+    }
+  }
+
+  return count;
 }
 

@@ -3,7 +3,7 @@ import { ClaudeStats } from './types';
 import { getStatsIcons } from './constants/icons';
 
 export class StatsViewProvider implements vscode.WebviewViewProvider {
-  public static readonly viewType = 'claudeConfigStats';
+  public static readonly viewType = 'claudeLensStats';
 
   private _view?: vscode.WebviewView;
   private _stats?: ClaudeStats;
@@ -33,8 +33,13 @@ export class StatsViewProvider implements vscode.WebviewViewProvider {
   private _updateHtml(): void {
     if (!this._view) return;
 
-    const stats = this._stats || { totalFiles: 0, skills: 0, commands: 0, agents: 0, hooks: 0, configs: 0 };
+    const stats = this._stats || { totalFiles: 0, skills: 0, commands: 0, agents: 0, hooks: 0, configs: 0, skillItems: [], commandItems: [], agentItems: [] };
     const icons = getStatsIcons();
+
+    // Format items for display
+    const skillsFormatted = stats.skillItems.map(s => `/${s}`);
+    const commandsFormatted = stats.commandItems.map(c => `/${c}`);
+    const agentsFormatted = stats.agentItems;
 
     this._view.webview.html = `<!DOCTYPE html>
 <html lang="en">
@@ -68,6 +73,16 @@ export class StatsViewProvider implements vscode.WebviewViewProvider {
       gap: 10px;
       border: 1px solid var(--vscode-widget-border, transparent);
     }
+    .stat-card.clickable {
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    .stat-card.clickable:hover {
+      background: var(--vscode-list-hoverBackground);
+    }
+    .stat-card.active {
+      border-color: var(--vscode-focusBorder);
+    }
     .stat-icon {
       display: flex;
       align-items: center;
@@ -91,6 +106,34 @@ export class StatsViewProvider implements vscode.WebviewViewProvider {
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
+    .dropdown {
+      display: none;
+      grid-column: 1 / -1;
+      background: var(--vscode-editor-background);
+      border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
+      border-radius: 6px;
+      padding: 8px 0;
+      max-height: 150px;
+      overflow-y: auto;
+    }
+    .dropdown.show {
+      display: block;
+    }
+    .dropdown-item {
+      padding: 6px 12px;
+      font-size: 12px;
+      color: var(--vscode-foreground);
+      font-family: var(--vscode-editor-font-family, monospace);
+    }
+    .dropdown-item:hover {
+      background: var(--vscode-list-hoverBackground);
+    }
+    .dropdown-empty {
+      padding: 8px 12px;
+      font-size: 11px;
+      color: var(--vscode-descriptionForeground);
+      font-style: italic;
+    }
   </style>
 </head>
 <body>
@@ -102,26 +145,44 @@ export class StatsViewProvider implements vscode.WebviewViewProvider {
         <span class="stat-label">Files</span>
       </div>
     </div>
-    <div class="stat-card">
+    <div class="stat-card clickable" data-dropdown="skills">
       <span class="stat-icon">${icons.target}</span>
       <div class="stat-info">
         <span class="stat-value">${stats.skills}</span>
         <span class="stat-label">Skills</span>
       </div>
     </div>
-    <div class="stat-card">
+    <div class="dropdown" id="dropdown-skills">
+      ${skillsFormatted.length > 0
+        ? skillsFormatted.map(s => `<div class="dropdown-item">${s}</div>`).join('')
+        : '<div class="dropdown-empty">No skills found</div>'
+      }
+    </div>
+    <div class="stat-card clickable" data-dropdown="commands">
       <span class="stat-icon">${icons.terminal}</span>
       <div class="stat-info">
         <span class="stat-value">${stats.commands}</span>
         <span class="stat-label">Commands</span>
       </div>
     </div>
-    <div class="stat-card">
+    <div class="dropdown" id="dropdown-commands">
+      ${commandsFormatted.length > 0
+        ? commandsFormatted.map(c => `<div class="dropdown-item">${c}</div>`).join('')
+        : '<div class="dropdown-empty">No commands found</div>'
+      }
+    </div>
+    <div class="stat-card clickable" data-dropdown="agents">
       <span class="stat-icon">${icons.robot}</span>
       <div class="stat-info">
         <span class="stat-value">${stats.agents}</span>
         <span class="stat-label">Agents</span>
       </div>
+    </div>
+    <div class="dropdown" id="dropdown-agents">
+      ${agentsFormatted.length > 0
+        ? agentsFormatted.map(a => `<div class="dropdown-item">${a}</div>`).join('')
+        : '<div class="dropdown-empty">No agents found</div>'
+      }
     </div>
     <div class="stat-card">
       <span class="stat-icon">${icons.bolt}</span>
@@ -138,6 +199,46 @@ export class StatsViewProvider implements vscode.WebviewViewProvider {
       </div>
     </div>
   </div>
+  <script>
+    const cards = document.querySelectorAll('.stat-card.clickable');
+    let activeDropdown = null;
+
+    cards.forEach(card => {
+      card.addEventListener('click', (e) => {
+        const dropdownId = card.dataset.dropdown;
+        const dropdown = document.getElementById('dropdown-' + dropdownId);
+
+        // Close other dropdowns
+        document.querySelectorAll('.dropdown.show').forEach(d => {
+          if (d !== dropdown) d.classList.remove('show');
+        });
+        document.querySelectorAll('.stat-card.active').forEach(c => {
+          if (c !== card) c.classList.remove('active');
+        });
+
+        // Toggle current dropdown
+        const isOpen = dropdown.classList.contains('show');
+        if (isOpen) {
+          dropdown.classList.remove('show');
+          card.classList.remove('active');
+          activeDropdown = null;
+        } else {
+          dropdown.classList.add('show');
+          card.classList.add('active');
+          activeDropdown = dropdown;
+        }
+      });
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.stat-card.clickable') && !e.target.closest('.dropdown')) {
+        document.querySelectorAll('.dropdown.show').forEach(d => d.classList.remove('show'));
+        document.querySelectorAll('.stat-card.active').forEach(c => c.classList.remove('active'));
+        activeDropdown = null;
+      }
+    });
+  </script>
 </body>
 </html>`;
   }

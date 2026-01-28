@@ -16,10 +16,22 @@ export function calculateStats(folders: ClaudeFolder[]): ClaudeStats {
     agents: 0,
     hooks: 0,
     configs: 0,
+    skillItems: [],
+    commandItems: [],
+    agentItems: [],
   };
 
   for (const folder of folders) {
     processItems(folder.items, stats);
+
+    // Count hooks from settings.json
+    stats.hooks += folder.hooksCount;
+
+    // Count .mcp.json as a config file
+    if (folder.mcpConfig) {
+      stats.totalFiles++;
+      stats.configs++;
+    }
   }
 
   return stats;
@@ -41,9 +53,11 @@ function processItems(items: ClaudeConfigItem[], stats: ClaudeStats): void {
     } else if (item.children) {
       const category = getFolderCategory(item.name);
 
-      if (category) {
+      // Only process skills, commands, agents as special categories
+      if (category === 'skills' || category === 'commands' || category === 'agents') {
         processCategoryFolder(category, item.children, stats);
       } else {
+        // For 'rules' and other folders, just count files recursively
         processItems(item.children, stats);
       }
     }
@@ -51,47 +65,50 @@ function processItems(items: ClaudeConfigItem[], stats: ClaudeStats): void {
 }
 
 /**
- * Process a category folder (skills, commands, agents, hooks)
+ * Process a category folder (skills, commands, agents)
  */
 function processCategoryFolder(
-  category: 'skills' | 'commands' | 'agents' | 'hooks',
+  category: 'skills' | 'commands' | 'agents',
   children: ClaudeConfigItem[],
   stats: ClaudeStats
 ): void {
-  if (category === 'hooks') {
-    // For hooks, count all files
-    stats.hooks += countFilesInFolder(children, stats);
-  } else {
-    // For skills, commands, agents - count top-level items
-    const result = countTopLevelItems(children);
-    stats[category] += result.count;
-    stats.totalFiles += result.totalFiles;
-  }
+  // For skills, commands, agents - count top-level items
+  const result = countTopLevelItems(children);
+  stats[category] += result.count;
+  stats.totalFiles += result.totalFiles;
+
+  // Collect item names
+  const itemsKey = `${category.slice(0, -1)}Items` as 'skillItems' | 'commandItems' | 'agentItems';
+  stats[itemsKey].push(...result.names);
 }
 
 /**
  * Count top-level items in a category folder
  * Each subfolder = 1 item, each top-level .md = 1 item
  */
-function countTopLevelItems(items: ClaudeConfigItem[]): { count: number; totalFiles: number } {
+function countTopLevelItems(items: ClaudeConfigItem[]): { count: number; totalFiles: number; names: string[] } {
   let count = 0;
   let totalFiles = 0;
+  const names: string[] = [];
 
   for (const item of items) {
     if (item.type === 'folder') {
       // Subfolder = 1 item (skill/command/agent)
       count++;
+      names.push(item.name);
       totalFiles += countFilesRecursive(item.children || []);
     } else if (item.type === 'file') {
       if (item.name.toLowerCase().endsWith('.md')) {
         // Top-level .md file = 1 item
         count++;
+        // Remove .md extension
+        names.push(item.name.replace(/\.md$/i, ''));
       }
       totalFiles++;
     }
   }
 
-  return { count, totalFiles };
+  return { count, totalFiles, names };
 }
 
 /**
@@ -111,20 +128,3 @@ function countFilesRecursive(items: ClaudeConfigItem[]): number {
   return count;
 }
 
-/**
- * Count files in a folder, also updating totalFiles in stats
- */
-function countFilesInFolder(items: ClaudeConfigItem[], stats: ClaudeStats): number {
-  let count = 0;
-
-  for (const item of items) {
-    if (item.type === 'file') {
-      stats.totalFiles++;
-      count++;
-    } else if (item.children) {
-      count += countFilesInFolder(item.children, stats);
-    }
-  }
-
-  return count;
-}
