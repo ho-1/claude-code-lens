@@ -4,7 +4,6 @@ import { ClaudeTreeProvider, TreeItem } from './claudeTreeProvider';
 import { StatsViewProvider } from './statsViewProvider';
 import { createDashboardPanel, updateDashboardPanel, disposeDashboardPanel } from './webview';
 import { scanWorkspace } from './claudeScanner';
-import { CHECK_PROMPTS } from './constants/checkPrompts';
 
 let fileWatcher: vscode.FileSystemWatcher | undefined;
 let mcpWatcher: vscode.FileSystemWatcher | undefined;
@@ -177,28 +176,6 @@ export function activate(context: vscode.ExtensionContext) {
     }
   );
 
-  // Copy Check Prompt command
-  const copyCheckPromptCommand = vscode.commands.registerCommand(
-    'claudeLens.copyCheckPrompt',
-    async (item: TreeItem) => {
-      let promptKey: string;
-
-      if (item.contextValue === 'claudeFolder') {
-        promptKey = 'claudeFolder';
-      } else if (item.contextValue === 'subfolder' && item.configItem) {
-        promptKey = item.configItem.name.toLowerCase();
-      } else {
-        return;
-      }
-
-      const prompt = CHECK_PROMPTS[promptKey];
-      if (prompt) {
-        await vscode.env.clipboard.writeText(prompt);
-        vscode.window.showInformationMessage('Check prompt copied!');
-      }
-    }
-  );
-
   // File system watcher for .claude folders
   fileWatcher = vscode.workspace.createFileSystemWatcher('**/.claude/**');
   fileWatcher.onDidCreate(refreshAll);
@@ -223,7 +200,6 @@ export function activate(context: vscode.ExtensionContext) {
     newFolderCommand,
     deleteCommand,
     renameCommand,
-    copyCheckPromptCommand,
     fileWatcher,
     mcpWatcher,
     workspaceFolderWatcher,

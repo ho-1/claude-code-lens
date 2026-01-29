@@ -60,9 +60,9 @@ export class ClaudeTreeProvider implements vscode.TreeDataProvider<TreeItem> {
       folder.workspaceFolder.uri.fsPath,
       folder.claudePath.fsPath
     );
-    const displayPath = relativePath || '.claude';
     const isRoot = !relativePath || relativePath === '.claude';
-    const label = isRoot ? '.claude (root)' : displayPath;
+    // Remove .claude from path for cleaner display
+    const label = isRoot ? 'root' : relativePath.replace(/\/?\.claude$/, '');
     const itemId = folder.claudePath.fsPath;
 
     // Initialize expand state if not set

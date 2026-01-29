@@ -2,19 +2,18 @@
  * HTML rendering functions for the dashboard webview
  */
 
-import * as path from 'path';
-import { ClaudeFolder, ClaudeConfigItem, ScanResult } from '../types';
+import { ScanResult } from '../types';
 import { COLORS } from '../constants/colors';
 import { SVG_ICONS } from '../constants/icons';
-import { FOLDER_CATEGORIES } from '../constants/folderCategories';
-import { getSvgIcon, getSvgFolderIcon } from '../utils/iconUtils';
 import { DASHBOARD_STYLES } from './styles';
+import { renderCardView, getCardViewScripts } from './cardView';
+import { renderGraphView, getGraphViewScripts } from './graphView';
 
 /**
  * Generate the complete HTML content for the dashboard
  */
 export function getHtmlContent(result: ScanResult): string {
-  const { folders, stats } = result;
+  const { stats } = result;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -36,105 +35,83 @@ export function getHtmlContent(result: ScanResult): string {
       <a href="https://docs.anthropic.com/en/docs/claude-code/hooks" class="guide-link">Hooks</a>
       <a href="https://docs.anthropic.com/en/docs/claude-code/mcp" class="guide-link">MCP</a>
       <a href="https://docs.anthropic.com/en/docs/claude-code/sub-agents" class="guide-link">Agents</a>
+      <span class="guide-separator">|</span>
+      <a href="https://skills.sh/" class="guide-link community">skills.sh</a>
     </div>
   </div>
 
   ${renderStatsBar(stats)}
 
-  ${folders.length === 0 ? renderEmptyState() : folders.map((f, i) => renderFolder(f, i)).join('')}
+  ${renderTabBar()}
+
+  <div id="tab-card" class="tab-content active">
+    ${renderCardView(result)}
+  </div>
+
+  <div id="tab-graph" class="tab-content">
+    ${renderGraphView(result)}
+  </div>
 
   <script>
     const vscode = acquireVsCodeApi();
 
-    // Card click handler
-    document.querySelectorAll('.card[data-path]').forEach(card => {
-      card.addEventListener('click', () => {
-        vscode.postMessage({
-          type: 'openFile',
-          path: card.dataset.path
-        });
+    // Tab switching
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tabId = btn.dataset.tab;
+
+        // Update active tab button
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        // Update active tab content
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        document.getElementById('tab-' + tabId).classList.add('active');
       });
     });
 
-    // Folder toggle handler
-    document.querySelectorAll('.folder-header').forEach(header => {
-      header.addEventListener('click', () => {
-        const section = header.closest('.folder-section');
-        const content = section.querySelector('.folder-content');
-        const chevron = header.querySelector('.folder-chevron');
+    ${getCardViewScripts()}
 
-        content.classList.toggle('collapsed');
-        chevron.classList.toggle('collapsed');
-      });
-    });
+    ${getStatsScripts()}
 
-    // Subfolder toggle handler
-    document.querySelectorAll('.subfolder-header').forEach(header => {
-      header.addEventListener('click', () => {
-        const section = header.closest('.subfolder-section');
-        const content = section.querySelector('.subfolder-content');
-        const chevron = header.querySelector('.subfolder-chevron');
+    ${getGraphViewScripts()}
 
-        content.classList.toggle('collapsed');
-        chevron.classList.toggle('collapsed');
-      });
-    });
-
-    // Folder action button handler
-    document.querySelectorAll('.folder-action-btn').forEach(btn => {
+    // Copy prompt button handler
+    document.querySelectorAll('.copy-prompt-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        if (btn.disabled) return;
         vscode.postMessage({
-          type: 'folderAction',
-          action: btn.dataset.action,
-          path: btn.dataset.path
+          type: 'copyPrompt',
+          folderType: btn.dataset.folderType
         });
       });
-    });
-
-    // Banner click handler (entire banner is clickable)
-    document.querySelectorAll('.action-banner[data-action]').forEach(banner => {
-      banner.addEventListener('click', () => {
-        vscode.postMessage({
-          type: 'folderAction',
-          action: banner.dataset.action,
-          path: banner.dataset.path,
-          folderName: banner.dataset.folderName
-        });
-      });
-    });
-
-    // Stats dropdown handler
-    document.querySelectorAll('.stat-item.clickable').forEach(item => {
-      item.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const dropdown = item.querySelector('.stat-dropdown');
-        const isOpen = dropdown.classList.contains('show');
-
-        // Close all dropdowns
-        document.querySelectorAll('.stat-dropdown.show').forEach(d => d.classList.remove('show'));
-        document.querySelectorAll('.stat-item.active').forEach(i => i.classList.remove('active'));
-
-        // Toggle current dropdown
-        if (!isOpen) {
-          dropdown.classList.add('show');
-          item.classList.add('active');
-        }
-      });
-    });
-
-    // Close dropdown when clicking outside
-    document.addEventListener('click', (e) => {
-      if (!e.target.closest('.stat-item.clickable')) {
-        document.querySelectorAll('.stat-dropdown.show').forEach(d => d.classList.remove('show'));
-        document.querySelectorAll('.stat-item.active').forEach(i => i.classList.remove('active'));
-      }
     });
 
   </script>
 </body>
 </html>`;
+}
+
+/**
+ * Render the tab bar
+ */
+function renderTabBar(): string {
+  return `
+  <div class="tab-bar">
+    <button class="tab-btn active" data-tab="card">
+      <svg viewBox="0 0 16 16" fill="currentColor">
+        <path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5v-3zM2.5 2a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3zm6.5.5A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5v-3zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3zM1 10.5A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5v-3zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3zm6.5.5A1.5 1.5 0 0 1 10.5 9h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 9 13.5v-3zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3z"/>
+      </svg>
+      Cards
+    </button>
+    <button class="tab-btn" data-tab="graph">
+      <svg viewBox="0 0 16 16" fill="currentColor">
+        <path d="M3 3a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm0 5a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm0 5a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm6-10a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm0 10a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm6-5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+        <path d="M3 3l5 0m-5 5l10 0m-10 5l5 0m5-5l0-5m0 10l0-5" stroke="currentColor" stroke-width="1" fill="none"/>
+      </svg>
+      Graph
+    </button>
+  </div>`;
 }
 
 /**
@@ -147,11 +124,6 @@ function renderStatsBar(stats: ScanResult['stats']): string {
 
   return `
   <div class="stats-bar">
-    <div class="stat-item">
-      <span class="stat-icon">${SVG_ICONS.file(COLORS.file)}</span>
-      <span class="stat-value">${stats.totalFiles}</span>
-      <span class="stat-label">Files</span>
-    </div>
     <div class="stat-item clickable" data-dropdown="skills">
       <span class="stat-icon">${SVG_ICONS.target(COLORS.target)}</span>
       <span class="stat-value">${stats.skills}</span>
@@ -199,198 +171,37 @@ function renderStatsBar(stats: ScanResult['stats']): string {
 }
 
 /**
- * Render a folder section
+ * Get stats dropdown scripts
  */
-function renderFolder(folder: ClaudeFolder, index: number): string {
-  const relativePath = path.relative(
-    folder.workspaceFolder.uri.fsPath,
-    folder.claudePath.fsPath
-  );
-  const displayPath = relativePath || '.claude';
-  const isRoot = !relativePath || relativePath === '.claude';
-  const fileCount = countFiles(folder.items) + (folder.mcpConfig ? 1 : 0);
-  const folderIcon = SVG_ICONS.folder(COLORS.folder);
-  const claudePath = folder.claudePath.fsPath;
-
-  // Find missing folders (only suggest agents, skills, commands)
-  const SUGGESTABLE_FOLDERS = ['agents', 'skills', 'commands'] as const;
-  const missingFolders = SUGGESTABLE_FOLDERS.filter(
-    cat => !folder.existingFolders.includes(cat)
-  );
-
+function getStatsScripts(): string {
   return `
-  <div class="folder-section" data-folder="${index}">
-    <div class="folder-header">
-      <span class="folder-chevron collapsed">▼</span>
-      <span class="folder-icon">${folderIcon}</span>
-      <span class="folder-title">${isRoot ? '.claude (root)' : escapeHtml(displayPath)}</span>
-      <span class="folder-badge">${fileCount} files</span>
-    </div>
-    <div class="folder-content collapsed">
-      ${!folder.hasClaudeMd ? `
-      <div class="action-banner add-claude-md-banner" data-action="addClaudeMd" data-path="${escapeHtml(claudePath)}">
-        <span class="banner-icon">${SVG_ICONS.document(COLORS.document)}</span>
-        <span class="banner-text">No CLAUDE.md in this folder</span>
-        <span class="banner-action">+ Add CLAUDE.md</span>
-      </div>` : ''}
-      ${missingFolders.length > 0 ? `
-      <div class="missing-folders-guide">
-        <span class="guide-label">Add folders:</span>
-        <div class="guide-buttons">
-          ${missingFolders.map(folderName => `
-          <div class="action-banner add-folder-banner" data-action="addFolder" data-path="${escapeHtml(claudePath)}" data-folder-name="${folderName}">
-            <span class="banner-icon">${getSvgFolderIcon(folderName, true)}</span>
-            <span class="banner-text">${folderName}/</span>
-            <span class="banner-action">+</span>
-          </div>`).join('')}
-        </div>
-      </div>` : ''}
-      ${renderItems(folder.items, undefined, folder.mcpConfig ? [folder.mcpConfig] : undefined)}
-    </div>
-  </div>`;
-}
+    // Stats dropdown handler
+    document.querySelectorAll('.stat-item.clickable').forEach(item => {
+      item.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const dropdown = item.querySelector('.stat-dropdown');
+        const isOpen = dropdown.classList.contains('show');
 
-/**
- * Count files recursively
- */
-function countFiles(items: ClaudeConfigItem[]): number {
-  let count = 0;
-  for (const item of items) {
-    if (item.type === 'file') {
-      count++;
-    } else if (item.children) {
-      count += countFiles(item.children);
-    }
-  }
-  return count;
-}
+        // Close all dropdowns
+        document.querySelectorAll('.stat-dropdown.show').forEach(d => d.classList.remove('show'));
+        document.querySelectorAll('.stat-item.active').forEach(i => i.classList.remove('active'));
 
-/**
- * Render items (files and subfolders)
- */
-function renderItems(items: ClaudeConfigItem[], parentFolder?: string, extraFiles?: ClaudeConfigItem[]): string {
-  let files = items.filter(i => i.type === 'file');
-  if (extraFiles) {
-    files = [...files, ...extraFiles];
-  }
-  const folders = items.filter(i => i.type === 'folder');
+        // Toggle current dropdown
+        if (!isOpen) {
+          dropdown.classList.add('show');
+          item.classList.add('active');
+        }
+      });
+    });
 
-  let html = '';
-
-  // Render files first in a grid
-  if (files.length > 0) {
-    html += `<div class="cards-grid">${files.map(f => renderCard(f, parentFolder)).join('')}</div>`;
-  }
-
-  // Render subfolders
-  for (const folder of folders) {
-    html += renderSubfolder(folder);
-  }
-
-  return html;
-}
-
-/**
- * Render a subfolder section
- */
-function renderSubfolder(item: ClaudeConfigItem): string {
-  if (!item.children || item.children.length === 0) {
-    return '';
-  }
-
-  const fileCount = countFiles(item.children);
-  const folderIcon = getSvgFolderIcon(item.name, true);
-
-  return `
-  <div class="subfolder-section">
-    <div class="subfolder-header">
-      <span class="subfolder-chevron collapsed">▼</span>
-      <span class="subfolder-icon">${folderIcon}</span>
-      <span class="subfolder-name">${escapeHtml(item.name)}/ (${fileCount})</span>
-    </div>
-    <div class="subfolder-content collapsed">
-      ${renderItems(item.children, item.name)}
-    </div>
-  </div>`;
-}
-
-/**
- * Render a file card
- */
-function renderCard(item: ClaudeConfigItem, parentFolder?: string): string {
-  const frontmatter = item.parsed?.frontmatter || {};
-  const title = frontmatter.name || item.name;
-  const description = frontmatter.description || item.parsed?.preview || '';
-  const icon = getSvgIcon(item.name, parentFolder);
-
-  // Build metadata items
-  const metadataItems: string[] = [];
-  if (frontmatter.model) {
-    metadataItems.push(`<span class="card-metadata-item model">model: ${escapeHtml(frontmatter.model)}</span>`);
-  }
-  if (frontmatter.tools && frontmatter.tools.length > 0) {
-    const toolsStr = frontmatter.tools.length > 3
-      ? frontmatter.tools.slice(0, 3).join(', ') + '...'
-      : frontmatter.tools.join(', ');
-    metadataItems.push(`<span class="card-metadata-item tools">tools: ${escapeHtml(toolsStr)}</span>`);
-  }
-  if (frontmatter.permissionMode) {
-    metadataItems.push(`<span class="card-metadata-item permission">${escapeHtml(frontmatter.permissionMode)}</span>`);
-  }
-  if (frontmatter.hooksCount) {
-    metadataItems.push(`<span class="card-metadata-item hooks">${SVG_ICONS.bolt(COLORS.bolt)} ${frontmatter.hooksCount} hooks</span>`);
-  }
-
-  // Build allowed-tools section (for skills)
-  let allowedToolsHtml = '';
-  if (frontmatter.allowedTools && frontmatter.allowedTools.length > 0) {
-    const toolTags = frontmatter.allowedTools.map(t => `<span class="permission-tag allow">${escapeHtml(t)}</span>`).join('');
-    allowedToolsHtml = `<div class="permissions-section"><div class="permissions-row"><span class="permissions-label">tools</span><div class="permissions-tags">${toolTags}</div></div></div>`;
-  }
-
-  // Build permissions section
-  let permissionsHtml = '';
-  if (frontmatter.permissions) {
-    const { allow, deny } = frontmatter.permissions;
-    const hasPermissions = (allow && allow.length > 0) || (deny && deny.length > 0);
-
-    if (hasPermissions) {
-      let rowsHtml = '';
-      if (allow && allow.length > 0) {
-        const allowTags = allow.map(p => `<span class="permission-tag allow">${escapeHtml(p)}</span>`).join('');
-        rowsHtml += `<div class="permissions-row"><span class="permissions-label">allow</span><div class="permissions-tags">${allowTags}</div></div>`;
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.stat-item.clickable')) {
+        document.querySelectorAll('.stat-dropdown.show').forEach(d => d.classList.remove('show'));
+        document.querySelectorAll('.stat-item.active').forEach(i => i.classList.remove('active'));
       }
-      if (deny && deny.length > 0) {
-        const denyTags = deny.map(p => `<span class="permission-tag deny">${escapeHtml(p)}</span>`).join('');
-        rowsHtml += `<div class="permissions-row"><span class="permissions-label">deny</span><div class="permissions-tags">${denyTags}</div></div>`;
-      }
-      permissionsHtml = `<div class="permissions-section">${rowsHtml}</div>`;
-    }
-  }
-
-  return `
-  <div class="card" data-path="${escapeHtml(item.uri.fsPath)}">
-    <div class="card-header">
-      <span class="card-icon">${icon}</span>
-      <span class="card-title">${escapeHtml(title)}</span>
-    </div>
-    ${description ? `<div class="card-description">${escapeHtml(description)}</div>` : ''}
-    ${metadataItems.length > 0 ? `<div class="card-metadata">${metadataItems.join('')}</div>` : ''}
-    ${allowedToolsHtml}
-    ${permissionsHtml}
-  </div>`;
-}
-
-/**
- * Render empty state
- */
-function renderEmptyState(): string {
-  return `
-  <div class="empty-state">
-    <div class="empty-icon">📭</div>
-    <div class="empty-title">No .claude folders found</div>
-    <div class="empty-message">Create a .claude folder with config files to get started</div>
-  </div>`;
+    });
+  `;
 }
 
 /**

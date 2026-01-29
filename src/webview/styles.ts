@@ -65,6 +65,16 @@ body {
   text-decoration: underline;
 }
 
+.guide-links .guide-separator {
+  color: var(--vscode-descriptionForeground);
+  opacity: 0.4;
+  font-size: 11px;
+}
+
+.guide-links .guide-link.community {
+  color: var(--vscode-charts-purple, #a855f7);
+}
+
 /* Stats Bar */
 .stats-bar {
   display: inline-flex;
@@ -499,6 +509,36 @@ body {
   font-weight: 500;
 }
 
+.copy-prompt-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 4px;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s;
+}
+
+.subfolder-header:hover .copy-prompt-btn {
+  opacity: 0.6;
+}
+
+.copy-prompt-btn:hover {
+  opacity: 1 !important;
+  background: var(--vscode-toolbar-hoverBackground, rgba(255,255,255,0.1));
+}
+
+.copy-prompt-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
 .subfolder-content.collapsed {
   display: none;
 }
@@ -632,5 +672,103 @@ body {
   color: var(--vscode-textLink-foreground);
   font-size: 14px;
   font-weight: 600;
+}
+
+/* Tab Bar */
+.tab-bar {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+  padding: 4px;
+  background: var(--vscode-input-background);
+  border-radius: 8px;
+  width: fit-content;
+}
+
+.tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: none;
+  background: transparent;
+  color: var(--vscode-descriptionForeground);
+  font-size: 12px;
+  font-family: var(--vscode-font-family);
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.tab-btn:hover {
+  background: var(--vscode-list-hoverBackground);
+  color: var(--vscode-foreground);
+}
+
+.tab-btn.active {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+}
+
+.tab-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+/* Graph View Placeholder */
+.graph-view-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+}
+
+.graph-placeholder {
+  text-align: center;
+  padding: 48px;
+  background: var(--vscode-sideBar-background);
+  border-radius: 12px;
+  border: 1px dashed var(--vscode-widget-border, rgba(255,255,255,0.15));
+}
+
+.graph-placeholder-icon {
+  color: var(--vscode-descriptionForeground);
+  opacity: 0.5;
+  margin-bottom: 16px;
+}
+
+.graph-placeholder-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--vscode-foreground);
+}
+
+.graph-placeholder-desc {
+  font-size: 13px;
+  color: var(--vscode-descriptionForeground);
+  margin-bottom: 20px;
+}
+
+.graph-placeholder-stats {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+}
+
+.graph-stat {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  background: var(--vscode-input-background);
+  padding: 4px 10px;
+  border-radius: 4px;
 }
 `;

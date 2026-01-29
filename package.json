@@ -2,7 +2,7 @@
   "name": "claude-code-lens",
   "displayName": "Claude Code Lens",
   "description": "Visualize and manage .claude configuration folders in VS Code. Browse, edit, and organize your Claude Code configurations with ease.",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "publisher": "Byungho",
   "icon": "resources/icon.png",
   "engines": {
@@ -81,11 +81,6 @@
         "command": "claudeLens.rename",
         "title": "Rename...",
         "icon": "$(edit)"
-      },
-      {
-        "command": "claudeLens.copyCheckPrompt",
-        "title": "Copy Check Prompt",
-        "icon": "$(checklist)"
       }
     ],
     "menus": {
@@ -97,11 +92,6 @@
         }
       ],
       "view/item/context": [
-        {
-          "command": "claudeLens.copyCheckPrompt",
-          "when": "view == claudeLensView && viewItem =~ /claudeFolder|subfolder/",
-          "group": "0_check@1"
-        },
         {
           "command": "claudeLens.newFile",
           "when": "view == claudeLensView && viewItem =~ /claudeFolder|subfolder/",

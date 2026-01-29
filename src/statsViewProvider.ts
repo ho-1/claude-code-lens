@@ -22,6 +22,12 @@ export class StatsViewProvider implements vscode.WebviewViewProvider {
       localResourceRoots: [this._extensionUri],
     };
 
+    webviewView.webview.onDidReceiveMessage((message) => {
+      if (message.command === 'openDashboard') {
+        vscode.commands.executeCommand('claudeLens.openDashboard');
+      }
+    });
+
     this._updateHtml();
   }
 
@@ -134,17 +140,34 @@ export class StatsViewProvider implements vscode.WebviewViewProvider {
       color: var(--vscode-descriptionForeground);
       font-style: italic;
     }
+    .dashboard-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      width: 100%;
+      margin-top: 12px;
+      padding: 8px 12px;
+      background: var(--vscode-button-background);
+      color: var(--vscode-button-foreground);
+      border: none;
+      border-radius: 4px;
+      font-size: 12px;
+      font-family: var(--vscode-font-family);
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    .dashboard-btn:hover {
+      background: var(--vscode-button-hoverBackground);
+    }
+    .dashboard-btn svg {
+      width: 14px;
+      height: 14px;
+    }
   </style>
 </head>
 <body>
   <div class="stats-grid">
-    <div class="stat-card">
-      <span class="stat-icon">${icons.file}</span>
-      <div class="stat-info">
-        <span class="stat-value">${stats.totalFiles}</span>
-        <span class="stat-label">Files</span>
-      </div>
-    </div>
     <div class="stat-card clickable" data-dropdown="skills">
       <span class="stat-icon">${icons.target}</span>
       <div class="stat-info">
@@ -199,6 +222,12 @@ export class StatsViewProvider implements vscode.WebviewViewProvider {
       </div>
     </div>
   </div>
+  <button class="dashboard-btn" id="openDashboard">
+    <svg viewBox="0 0 16 16" fill="currentColor">
+      <path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5v-3zM2.5 2a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3zm6.5.5A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5v-3zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3zM1 10.5A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5v-3zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3zm6.5.5A1.5 1.5 0 0 1 10.5 9h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 9 13.5v-3zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3z"/>
+    </svg>
+    Open Dashboard
+  </button>
   <script>
     const cards = document.querySelectorAll('.stat-card.clickable');
     let activeDropdown = null;
@@ -237,6 +266,12 @@ export class StatsViewProvider implements vscode.WebviewViewProvider {
         document.querySelectorAll('.stat-card.active').forEach(c => c.classList.remove('active'));
         activeDropdown = null;
       }
+    });
+
+    // Open Dashboard button
+    const vscode = acquireVsCodeApi();
+    document.getElementById('openDashboard').addEventListener('click', () => {
+      vscode.postMessage({ command: 'openDashboard' });
     });
   </script>
 </body>

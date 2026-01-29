@@ -6,6 +6,7 @@ import * as vscode from 'vscode';
 import { ScanResult } from '../types';
 import { getHtmlContent } from './htmlRenderer';
 import { createClaudeMd, createFolder } from './actions';
+import { CHECK_PROMPTS } from '../constants/checkPrompts';
 
 let currentPanel: vscode.WebviewPanel | undefined;
 
@@ -41,7 +42,11 @@ export function createDashboardPanel(
       case 'openFile':
         const uri = vscode.Uri.file(message.path);
         const doc = await vscode.workspace.openTextDocument(uri);
-        await vscode.window.showTextDocument(doc, vscode.ViewColumn.Beside);
+        await vscode.window.showTextDocument(doc, {
+          viewColumn: vscode.ViewColumn.Two,
+          preview: true,
+          preserveFocus: false,
+        });
         break;
       case 'folderAction':
         switch (message.action) {
@@ -57,6 +62,13 @@ export function createDashboardPanel(
         // Refresh dashboard after file creation
         if (refreshCallback) {
           refreshCallback();
+        }
+        break;
+      case 'copyPrompt':
+        const prompt = CHECK_PROMPTS[message.folderType];
+        if (prompt) {
+          await vscode.env.clipboard.writeText(prompt);
+          vscode.window.showInformationMessage('Check prompt copied!');
         }
         break;
     }
