@@ -2,7 +2,7 @@
   "name": "claude-code-lens",
   "displayName": "Claude Code Lens",
   "description": "Visualize and manage .claude configuration folders in VS Code. Browse, edit, and organize your Claude Code configurations with ease.",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "publisher": "Byungho",
   "icon": "resources/icon.png",
   "engines": {
@@ -25,6 +25,32 @@
   },
   "main": "./dist/extension.js",
   "contributes": {
+    "configuration": {
+      "title": "Claude Code Lens",
+      "properties": {
+        "claudeLens.commit.model": {
+          "type": "string",
+          "default": "haiku",
+          "enum": [
+            "haiku",
+            "sonnet",
+            "opus"
+          ],
+          "enumDescriptions": [
+            "Claude Haiku - Fast and cost-effective",
+            "Claude Sonnet - Balanced performance",
+            "Claude Opus - Most capable model"
+          ],
+          "description": "Claude model to use for commit message generation"
+        },
+        "claudeLens.commit.prompt": {
+          "type": "string",
+          "default": "Generate a conventional commit message for the following git diff.\n\nRules:\n- Use format: type(scope): description\n- Types: feat, fix, docs, style, refactor, test, chore\n- Keep first line under 72 characters\n- Be specific and concise\n- Output plain text only, no markdown, no code blocks, no backticks\n\nDiff:",
+          "description": "Custom prompt for commit message generation",
+          "editPresentation": "multilineText"
+        }
+      }
+    },
     "viewsContainers": {
       "activitybar": [
         {
@@ -81,9 +107,28 @@
         "command": "claudeLens.rename",
         "title": "Rename...",
         "icon": "$(edit)"
+      },
+      {
+        "command": "claudeLens.generateCommit",
+        "title": "Generate Commit Message",
+        "category": "Claude Lens",
+        "icon": "$(sparkle)"
+      },
+      {
+        "command": "claudeLens.stopCommit",
+        "title": "Stop Generating",
+        "category": "Claude Lens",
+        "icon": "$(debug-stop)"
       }
     ],
     "menus": {
+      "scm/title": [
+        {
+          "command": "claudeLens.generateCommit",
+          "group": "navigation@0",
+          "when": "scmProvider == git"
+        }
+      ],
       "view/title": [
         {
           "command": "claudeLens.openDashboard",

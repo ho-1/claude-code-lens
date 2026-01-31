@@ -1,5 +1,5 @@
 /**
- * Card view rendering for the dashboard
+ * Card view rendering for the dashboard - Project-based list view
  */
 
 import * as path from 'path';
@@ -8,11 +8,17 @@ import { COLORS } from '../constants/colors';
 import { SVG_ICONS } from '../constants/icons';
 import { getSvgIcon, getSvgFolderIcon } from '../utils/iconUtils';
 
-// Folder types that support copy prompt
-const PROMPTABLE_FOLDERS = ['skills', 'agents', 'commands', 'hooks'];
+// Category accent colors
+const CATEGORY_COLORS = {
+  skills: '#EF4444',    // red
+  commands: '#3B82F6',  // blue
+  agents: '#8B5CF6',    // purple
+} as const;
+
+type CategoryType = keyof typeof CATEGORY_COLORS;
 
 /**
- * Render the card view content
+ * Render the card view content - project-based layout
  */
 export function renderCardView(result: ScanResult): string {
   const { folders } = result;
@@ -21,195 +27,164 @@ export function renderCardView(result: ScanResult): string {
     return renderEmptyState();
   }
 
-  return folders.map((f, i) => renderFolder(f, i)).join('');
+  return folders.map((f, i) => renderProjectCard(f, i)).join('');
 }
 
 /**
- * Render a folder section
+ * Get category items from a folder
  */
-function renderFolder(folder: ClaudeFolder, index: number): string {
+function getCategoryItems(folder: ClaudeFolder, category: CategoryType): ClaudeConfigItem[] {
+  const categoryFolder = folder.items.find(
+    item => item.type === 'folder' && item.name.toLowerCase() === category
+  );
+  return categoryFolder?.children || [];
+}
+
+/**
+ * Get root-level config files (CLAUDE.md, settings.json, mcp.json, etc.)
+ */
+function getRootFiles(folder: ClaudeFolder): ClaudeConfigItem[] {
+  const categoryFolders = ['skills', 'commands', 'agents'];
+  const files = folder.items.filter(
+    item => item.type === 'file' ||
+    (item.type === 'folder' && !categoryFolders.includes(item.name.toLowerCase()))
+  );
+  // Include mcpConfig if exists
+  if (folder.mcpConfig) {
+    files.push(folder.mcpConfig);
+  }
+  return files;
+}
+
+/**
+ * Get display path for a folder
+ */
+function getDisplayPath(folder: ClaudeFolder): string {
   const relativePath = path.relative(
     folder.workspaceFolder.uri.fsPath,
     folder.claudePath.fsPath
   );
   const isRoot = !relativePath || relativePath === '.claude';
-  // Remove .claude from path for cleaner display
-  const displayPath = isRoot ? 'root' : relativePath.replace(/\/?\.claude$/, '');
-  const fileCount = countFiles(folder.items) + (folder.mcpConfig ? 1 : 0);
+  return isRoot ? 'root' : relativePath.replace(/\/?\.claude$/, '');
+}
+
+/**
+ * Render a project card
+ */
+function renderProjectCard(folder: ClaudeFolder, index: number): string {
+  const displayPath = getDisplayPath(folder);
   const folderIcon = SVG_ICONS.folder(COLORS.folder);
-  const claudePath = folder.claudePath.fsPath;
 
-  // Find missing folders (only suggest agents, skills, commands)
-  const SUGGESTABLE_FOLDERS = ['agents', 'skills', 'commands'] as const;
-  const missingFolders = SUGGESTABLE_FOLDERS.filter(
-    cat => !folder.existingFolders.includes(cat)
-  );
+  const rootFiles = getRootFiles(folder);
+  const skillItems = getCategoryItems(folder, 'skills');
+  const commandItems = getCategoryItems(folder, 'commands');
+  const agentItems = getCategoryItems(folder, 'agents');
 
   return `
-  <div class="folder-section" data-folder="${index}">
-    <div class="folder-header">
-      <span class="folder-chevron collapsed">▼</span>
-      <span class="folder-icon">${folderIcon}</span>
-      <span class="folder-title">${escapeHtml(displayPath)}</span>
-      <span class="folder-badge">${fileCount} files</span>
+  <div class="project-card" data-project="${index}">
+    <div class="project-header">
+      <span class="project-icon">${folderIcon}</span>
+      <span class="project-title">${escapeHtml(displayPath)}</span>
     </div>
-    <div class="folder-content collapsed">
-      ${!folder.hasClaudeMd ? `
-      <div class="action-banner add-claude-md-banner" data-action="addClaudeMd" data-path="${escapeHtml(claudePath)}">
-        <span class="banner-icon">${SVG_ICONS.document(COLORS.document)}</span>
-        <span class="banner-text">No CLAUDE.md in this folder</span>
-        <span class="banner-action">+ Add CLAUDE.md</span>
-      </div>` : ''}
-      ${missingFolders.length > 0 ? `
-      <div class="missing-folders-guide">
-        <span class="guide-label">Add folders:</span>
-        <div class="guide-buttons">
-          ${missingFolders.map(folderName => `
-          <div class="action-banner add-folder-banner" data-action="addFolder" data-path="${escapeHtml(claudePath)}" data-folder-name="${folderName}">
-            <span class="banner-icon">${getSvgFolderIcon(folderName, true)}</span>
-            <span class="banner-text">${folderName}/</span>
-            <span class="banner-action">+</span>
-          </div>`).join('')}
-        </div>
-      </div>` : ''}
-      ${renderItems(folder.items, undefined, folder.mcpConfig ? [folder.mcpConfig] : undefined)}
+    <div class="project-content">
+      ${renderRootFiles(rootFiles)}
+      ${renderCategorySection('skills', skillItems)}
+      ${renderCategorySection('commands', commandItems)}
+      ${renderCategorySection('agents', agentItems)}
     </div>
   </div>`;
 }
 
 /**
- * Count files recursively
+ * Render root-level config files
  */
-function countFiles(items: ClaudeConfigItem[]): number {
-  let count = 0;
-  for (const item of items) {
-    if (item.type === 'file') {
-      count++;
-    } else if (item.children) {
-      count += countFiles(item.children);
-    }
-  }
-  return count;
-}
-
-/**
- * Render items (files and subfolders)
- */
-function renderItems(items: ClaudeConfigItem[], parentFolder?: string, extraFiles?: ClaudeConfigItem[]): string {
-  let files = items.filter(i => i.type === 'file');
-  if (extraFiles) {
-    files = [...files, ...extraFiles];
-  }
-  const folders = items.filter(i => i.type === 'folder');
-
-  let html = '';
-
-  // Render files first in a grid
-  if (files.length > 0) {
-    html += `<div class="cards-grid">${files.map(f => renderCard(f, parentFolder)).join('')}</div>`;
-  }
-
-  // Render subfolders
-  for (const folder of folders) {
-    html += renderSubfolder(folder);
-  }
-
-  return html;
-}
-
-/**
- * Render a subfolder section
- */
-function renderSubfolder(item: ClaudeConfigItem): string {
-  if (!item.children || item.children.length === 0) {
-    return '';
-  }
-
-  const fileCount = countFiles(item.children);
-  const folderIcon = getSvgFolderIcon(item.name, true);
-  const showCopyPrompt = PROMPTABLE_FOLDERS.includes(item.name);
+function renderRootFiles(items: ClaudeConfigItem[]): string {
+  if (items.length === 0) return '';
 
   return `
-  <div class="subfolder-section">
-    <div class="subfolder-header">
-      <span class="subfolder-chevron collapsed">▼</span>
-      <span class="subfolder-icon">${folderIcon}</span>
-      <span class="subfolder-name">${escapeHtml(item.name)}/ (${fileCount})</span>
-      ${showCopyPrompt ? `
-      <button class="copy-prompt-btn" data-folder-type="${item.name}" title="Copy check prompt">
-        ${SVG_ICONS.clipboard(COLORS.file)}
-      </button>` : ''}
+  <div class="root-files">
+    ${items.map(item => renderRootFileItem(item)).join('')}
+  </div>`;
+}
+
+/**
+ * Render a root file item (CLAUDE.md, settings.json, etc.)
+ */
+function renderRootFileItem(item: ClaudeConfigItem): string {
+  const icon = item.type === 'folder'
+    ? getSvgFolderIcon(item.name, false)
+    : getSvgIcon(item.name);
+  const displayName = item.name;
+
+  return `
+  <div class="root-file-item" data-path="${escapeHtml(item.uri.fsPath)}">
+    <span class="root-file-icon">${icon}</span>
+    <span class="root-file-name">${escapeHtml(displayName)}</span>
+  </div>`;
+}
+
+/**
+ * Render a category section (Skills, Commands, Agents)
+ */
+function renderCategorySection(category: CategoryType, items: ClaudeConfigItem[]): string {
+  if (items.length === 0) return '';
+
+  const accentColor = CATEGORY_COLORS[category];
+  const displayName = category.charAt(0).toUpperCase() + category.slice(1);
+
+  return `
+  <div class="category-section" data-category="${category}" style="--accent-color: ${accentColor}">
+    <div class="category-header">
+      <span class="category-name">${displayName}</span>
+      <span class="category-count">${items.length}</span>
     </div>
-    <div class="subfolder-content collapsed">
-      ${renderItems(item.children, item.name)}
+    <div class="category-items">
+      ${items.map(item => renderCategoryItem(item, category)).join('')}
     </div>
   </div>`;
 }
 
 /**
- * Render a file card
+ * Render a category item (skill/command/agent)
  */
-function renderCard(item: ClaudeConfigItem, parentFolder?: string): string {
+function renderCategoryItem(item: ClaudeConfigItem, category: CategoryType): string {
+  const isExpandable = item.type === 'folder' && item.children && item.children.length > 0;
+  const displayName = item.type === 'folder' ? item.name : item.name.replace(/\.md$/i, '');
   const frontmatter = item.parsed?.frontmatter || {};
-  const title = frontmatter.name || item.name;
   const description = frontmatter.description || item.parsed?.preview || '';
-  const icon = getSvgIcon(item.name, parentFolder);
-
-  // Build metadata items
-  const metadataItems: string[] = [];
-  if (frontmatter.model) {
-    metadataItems.push(`<span class="card-metadata-item model">model: ${escapeHtml(frontmatter.model)}</span>`);
-  }
-  if (frontmatter.tools && frontmatter.tools.length > 0) {
-    const toolsStr = frontmatter.tools.length > 3
-      ? frontmatter.tools.slice(0, 3).join(', ') + '...'
-      : frontmatter.tools.join(', ');
-    metadataItems.push(`<span class="card-metadata-item tools">tools: ${escapeHtml(toolsStr)}</span>`);
-  }
-  if (frontmatter.permissionMode) {
-    metadataItems.push(`<span class="card-metadata-item permission">${escapeHtml(frontmatter.permissionMode)}</span>`);
-  }
-  if (frontmatter.hooksCount) {
-    metadataItems.push(`<span class="card-metadata-item hooks">${SVG_ICONS.bolt(COLORS.bolt)} ${frontmatter.hooksCount} hooks</span>`);
-  }
-
-  // Build allowed-tools section (for skills)
-  let allowedToolsHtml = '';
-  if (frontmatter.allowedTools && frontmatter.allowedTools.length > 0) {
-    const toolTags = frontmatter.allowedTools.map(t => `<span class="permission-tag allow">${escapeHtml(t)}</span>`).join('');
-    allowedToolsHtml = `<div class="permissions-section"><div class="permissions-row"><span class="permissions-label">tools</span><div class="permissions-tags">${toolTags}</div></div></div>`;
-  }
-
-  // Build permissions section
-  let permissionsHtml = '';
-  if (frontmatter.permissions) {
-    const { allow, deny } = frontmatter.permissions;
-    const hasPermissions = (allow && allow.length > 0) || (deny && deny.length > 0);
-
-    if (hasPermissions) {
-      let rowsHtml = '';
-      if (allow && allow.length > 0) {
-        const allowTags = allow.map(p => `<span class="permission-tag allow">${escapeHtml(p)}</span>`).join('');
-        rowsHtml += `<div class="permissions-row"><span class="permissions-label">allow</span><div class="permissions-tags">${allowTags}</div></div>`;
-      }
-      if (deny && deny.length > 0) {
-        const denyTags = deny.map(p => `<span class="permission-tag deny">${escapeHtml(p)}</span>`).join('');
-        rowsHtml += `<div class="permissions-row"><span class="permissions-label">deny</span><div class="permissions-tags">${denyTags}</div></div>`;
-      }
-      permissionsHtml = `<div class="permissions-section">${rowsHtml}</div>`;
-    }
-  }
+  const icon = item.type === 'folder'
+    ? getSvgFolderIcon(item.name, true)
+    : getSvgIcon(item.name, category);
 
   return `
-  <div class="card" data-path="${escapeHtml(item.uri.fsPath)}">
-    <div class="card-header">
-      <span class="card-icon">${icon}</span>
-      <span class="card-title">${escapeHtml(title)}</span>
+  <div class="category-item ${isExpandable ? 'expandable' : ''}"
+       data-path="${escapeHtml(item.uri.fsPath)}"
+       data-expandable="${isExpandable}">
+    <div class="item-main">
+      <div class="item-header">
+        ${isExpandable ? '<span class="item-chevron collapsed">▶</span>' : ''}
+        <span class="item-icon">${icon}</span>
+        <span class="item-name">${escapeHtml(displayName)}</span>
+        ${item.type === 'folder' ? `<span class="item-badge">${item.children?.length || 0} files</span>` : ''}
+      </div>
+      ${description ? `<div class="item-description">${escapeHtml(description)}</div>` : ''}
     </div>
-    ${description ? `<div class="card-description">${escapeHtml(description)}</div>` : ''}
-    ${metadataItems.length > 0 ? `<div class="card-metadata">${metadataItems.join('')}</div>` : ''}
-    ${allowedToolsHtml}
-    ${permissionsHtml}
+    ${isExpandable ? renderExpandedContent(item.children!) : ''}
+  </div>`;
+}
+
+/**
+ * Render expanded content (subfiles)
+ */
+function renderExpandedContent(children: ClaudeConfigItem[]): string {
+  return `
+  <div class="item-expanded collapsed">
+    ${children.map(child => `
+      <div class="subfile" data-path="${escapeHtml(child.uri.fsPath)}">
+        <span class="subfile-icon">${getSvgIcon(child.name)}</span>
+        <span class="subfile-name">${escapeHtml(child.name)}</span>
+      </div>
+    `).join('')}
   </div>`;
 }
 
@@ -242,61 +217,45 @@ function escapeHtml(text: string): string {
  */
 export function getCardViewScripts(): string {
   return `
-    // Card click handler
-    document.querySelectorAll('.card[data-path]').forEach(card => {
-      card.addEventListener('click', () => {
+    // Root file item click - opens file
+    document.querySelectorAll('.root-file-item').forEach(item => {
+      item.addEventListener('click', () => {
         vscode.postMessage({
           type: 'openFile',
-          path: card.dataset.path
+          path: item.dataset.path
         });
       });
     });
 
-    // Folder toggle handler
-    document.querySelectorAll('.folder-header').forEach(header => {
-      header.addEventListener('click', () => {
-        const section = header.closest('.folder-section');
-        const content = section.querySelector('.folder-content');
-        const chevron = header.querySelector('.folder-chevron');
+    // Category item click - opens file if not expandable
+    document.querySelectorAll('.category-item:not(.expandable)').forEach(item => {
+      item.addEventListener('click', () => {
+        vscode.postMessage({
+          type: 'openFile',
+          path: item.dataset.path
+        });
+      });
+    });
 
-        content.classList.toggle('collapsed');
+    // Expandable item - click on main area to toggle
+    document.querySelectorAll('.category-item.expandable .item-main').forEach(main => {
+      main.addEventListener('click', () => {
+        const item = main.closest('.category-item');
+        const expanded = item.querySelector('.item-expanded');
+        const chevron = main.querySelector('.item-chevron');
+
+        expanded.classList.toggle('collapsed');
         chevron.classList.toggle('collapsed');
       });
     });
 
-    // Subfolder toggle handler
-    document.querySelectorAll('.subfolder-header').forEach(header => {
-      header.addEventListener('click', () => {
-        const section = header.closest('.subfolder-section');
-        const content = section.querySelector('.subfolder-content');
-        const chevron = header.querySelector('.subfolder-chevron');
-
-        content.classList.toggle('collapsed');
-        chevron.classList.toggle('collapsed');
-      });
-    });
-
-    // Folder action button handler
-    document.querySelectorAll('.folder-action-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
+    // Subfile click handler
+    document.querySelectorAll('.subfile').forEach(subfile => {
+      subfile.addEventListener('click', (e) => {
         e.stopPropagation();
-        if (btn.disabled) return;
         vscode.postMessage({
-          type: 'folderAction',
-          action: btn.dataset.action,
-          path: btn.dataset.path
-        });
-      });
-    });
-
-    // Banner click handler (entire banner is clickable)
-    document.querySelectorAll('.action-banner[data-action]').forEach(banner => {
-      banner.addEventListener('click', () => {
-        vscode.postMessage({
-          type: 'folderAction',
-          action: banner.dataset.action,
-          path: banner.dataset.path,
-          folderName: banner.dataset.folderName
+          type: 'openFile',
+          path: subfile.dataset.path
         });
       });
     });

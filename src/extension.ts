@@ -4,6 +4,7 @@ import { ClaudeTreeProvider, TreeItem } from './claudeTreeProvider';
 import { StatsViewProvider } from './statsViewProvider';
 import { createDashboardPanel, updateDashboardPanel, disposeDashboardPanel } from './webview';
 import { scanWorkspace } from './claudeScanner';
+import { generateCommitCommand, stopGeneration } from './commit';
 
 let fileWatcher: vscode.FileSystemWatcher | undefined;
 let mcpWatcher: vscode.FileSystemWatcher | undefined;
@@ -13,6 +14,20 @@ let treeView: vscode.TreeView<TreeItem>;
 
 export function activate(context: vscode.ExtensionContext) {
   console.log('Claude Code Lens is now active');
+
+  // Initialize commit generation state
+  vscode.commands.executeCommand('setContext', 'claudeLens.isGenerating', false);
+
+  // Register commit commands
+  const commitCommand = vscode.commands.registerCommand(
+    'claudeLens.generateCommit',
+    generateCommitCommand
+  );
+
+  const stopCommitCommand = vscode.commands.registerCommand(
+    'claudeLens.stopCommit',
+    stopGeneration
+  );
 
   // Create providers
   treeProvider = new ClaudeTreeProvider();
@@ -54,7 +69,7 @@ export function activate(context: vscode.ExtensionContext) {
       if (!scanResult) {
         scanResult = await scanWorkspace();
       }
-      createDashboardPanel(context.extensionUri, scanResult, refreshAll);
+      createDashboardPanel(context.extensionUri, scanResult);
     }
   );
 
@@ -200,6 +215,8 @@ export function activate(context: vscode.ExtensionContext) {
     newFolderCommand,
     deleteCommand,
     renameCommand,
+    commitCommand,
+    stopCommitCommand,
     fileWatcher,
     mcpWatcher,
     workspaceFolderWatcher,

@@ -5,8 +5,6 @@
 import * as vscode from 'vscode';
 import { ScanResult } from '../types';
 import { getHtmlContent } from './htmlRenderer';
-import { createClaudeMd, createFolder } from './actions';
-import { CHECK_PROMPTS } from '../constants/checkPrompts';
 
 let currentPanel: vscode.WebviewPanel | undefined;
 
@@ -15,8 +13,7 @@ let currentPanel: vscode.WebviewPanel | undefined;
  */
 export function createDashboardPanel(
   extensionUri: vscode.Uri,
-  scanResult: ScanResult,
-  refreshCallback?: () => void
+  scanResult: ScanResult
 ): vscode.WebviewPanel {
   if (currentPanel) {
     currentPanel.reveal(vscode.ViewColumn.One);
@@ -38,39 +35,19 @@ export function createDashboardPanel(
   currentPanel = panel;
 
   panel.webview.onDidReceiveMessage(async (message) => {
-    switch (message.type) {
-      case 'openFile':
-        const uri = vscode.Uri.file(message.path);
-        const doc = await vscode.workspace.openTextDocument(uri);
-        await vscode.window.showTextDocument(doc, {
-          viewColumn: vscode.ViewColumn.Two,
-          preview: true,
-          preserveFocus: false,
-        });
-        break;
-      case 'folderAction':
-        switch (message.action) {
-          case 'addClaudeMd':
-            await createClaudeMd(message.path);
-            break;
-          case 'addFolder':
-            if (message.folderName) {
-              await createFolder(message.path, message.folderName);
-            }
-            break;
-        }
-        // Refresh dashboard after file creation
-        if (refreshCallback) {
-          refreshCallback();
-        }
-        break;
-      case 'copyPrompt':
-        const prompt = CHECK_PROMPTS[message.folderType];
-        if (prompt) {
-          await vscode.env.clipboard.writeText(prompt);
-          vscode.window.showInformationMessage('Check prompt copied!');
-        }
-        break;
+    if (message.type === 'openFile') {
+      const uri = vscode.Uri.file(message.path);
+      const doc = await vscode.workspace.openTextDocument(uri);
+      await vscode.window.showTextDocument(doc, {
+        viewColumn: vscode.ViewColumn.Two,
+        preview: true,
+        preserveFocus: false,
+      });
+    } else if (message.type === 'openSettings') {
+      await vscode.commands.executeCommand(
+        'workbench.action.openSettings',
+        '@ext:Byungho.claude-code-lens'
+      );
     }
   });
 

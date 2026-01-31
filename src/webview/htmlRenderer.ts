@@ -55,6 +55,11 @@ export function getHtmlContent(result: ScanResult): string {
   <script>
     const vscode = acquireVsCodeApi();
 
+    // Open extension settings
+    function openSettings() {
+      vscode.postMessage({ type: 'openSettings' });
+    }
+
     // Tab switching
     document.querySelectorAll('.tab-btn').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -72,21 +77,7 @@ export function getHtmlContent(result: ScanResult): string {
 
     ${getCardViewScripts()}
 
-    ${getStatsScripts()}
-
     ${getGraphViewScripts()}
-
-    // Copy prompt button handler
-    document.querySelectorAll('.copy-prompt-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        vscode.postMessage({
-          type: 'copyPrompt',
-          folderType: btn.dataset.folderType
-        });
-      });
-    });
-
   </script>
 </body>
 </html>`;
@@ -115,93 +106,44 @@ function renderTabBar(): string {
 }
 
 /**
- * Render the stats bar
+ * Render the stats bar with settings button
  */
 function renderStatsBar(stats: ScanResult['stats']): string {
-  const skillsFormatted = stats.skillItems.map(s => `/${s}`);
-  const commandsFormatted = stats.commandItems.map(c => `/${c}`);
-  const agentsFormatted = stats.agentItems;
-
   return `
-  <div class="stats-bar">
-    <div class="stat-item clickable" data-dropdown="skills">
-      <span class="stat-icon">${SVG_ICONS.target(COLORS.target)}</span>
-      <span class="stat-value">${stats.skills}</span>
-      <span class="stat-label">Skills</span>
-      <div class="stat-dropdown" id="dropdown-skills">
-        ${skillsFormatted.length > 0
-          ? skillsFormatted.map(s => `<div class="dropdown-item">${escapeHtml(s)}</div>`).join('')
-          : '<div class="dropdown-empty">No skills found</div>'
-        }
+  <div class="stats-bar-container">
+    <div class="stats-bar">
+      <div class="stat-item">
+        <span class="stat-icon">${SVG_ICONS.target(COLORS.target)}</span>
+        <span class="stat-value">${stats.skills}</span>
+        <span class="stat-label">Skills</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-icon">${SVG_ICONS.terminal(COLORS.terminal)}</span>
+        <span class="stat-value">${stats.commands}</span>
+        <span class="stat-label">Commands</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-icon">${SVG_ICONS.robot(COLORS.robot)}</span>
+        <span class="stat-value">${stats.agents}</span>
+        <span class="stat-label">Agents</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-icon">${SVG_ICONS.bolt(COLORS.bolt)}</span>
+        <span class="stat-value">${stats.hooks}</span>
+        <span class="stat-label">Hooks</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-icon">${SVG_ICONS.gear(COLORS.gear)}</span>
+        <span class="stat-value">${stats.configs}</span>
+        <span class="stat-label">Configs</span>
       </div>
     </div>
-    <div class="stat-item clickable" data-dropdown="commands">
-      <span class="stat-icon">${SVG_ICONS.terminal(COLORS.terminal)}</span>
-      <span class="stat-value">${stats.commands}</span>
-      <span class="stat-label">Commands</span>
-      <div class="stat-dropdown" id="dropdown-commands">
-        ${commandsFormatted.length > 0
-          ? commandsFormatted.map(c => `<div class="dropdown-item">${escapeHtml(c)}</div>`).join('')
-          : '<div class="dropdown-empty">No commands found</div>'
-        }
-      </div>
-    </div>
-    <div class="stat-item clickable" data-dropdown="agents">
-      <span class="stat-icon">${SVG_ICONS.robot(COLORS.robot)}</span>
-      <span class="stat-value">${stats.agents}</span>
-      <span class="stat-label">Agents</span>
-      <div class="stat-dropdown" id="dropdown-agents">
-        ${agentsFormatted.length > 0
-          ? agentsFormatted.map(a => `<div class="dropdown-item">${escapeHtml(a)}</div>`).join('')
-          : '<div class="dropdown-empty">No agents found</div>'
-        }
-      </div>
-    </div>
-    <div class="stat-item">
-      <span class="stat-icon">${SVG_ICONS.bolt(COLORS.bolt)}</span>
-      <span class="stat-value">${stats.hooks}</span>
-      <span class="stat-label">Hooks</span>
-    </div>
-    <div class="stat-item">
-      <span class="stat-icon">${SVG_ICONS.gear(COLORS.gear)}</span>
-      <span class="stat-value">${stats.configs}</span>
-      <span class="stat-label">Configs</span>
-    </div>
+    <button class="settings-btn" onclick="openSettings()" title="Extension Settings">
+      <svg viewBox="0 0 16 16" fill="currentColor">
+        <path fill-rule="evenodd" d="M9.1 4.4L8.6 2H7.4l-.5 2.4-.7.3-2-1.3-.9.8 1.3 2-.2.7-2.4.5v1.2l2.4.5.3.8-1.3 2 .8.8 2-1.3.8.3.4 2.3h1.2l.5-2.4.8-.3 2 1.3.8-.8-1.3-2 .3-.8 2.3-.4V7.4l-2.4-.5-.3-.8 1.3-2-.8-.8-2 1.3-.7-.2zM9.4 1l.5 2.4L12 2.1l2 2-1.4 2.1 2.4.4v2.8l-2.4.5L14 12l-2 2-2.1-1.4-.5 2.4H6.6l-.5-2.4L4 13.9l-2-2 1.4-2.1L1 9.4V6.6l2.4-.5L2.1 4l2-2 2.1 1.4.4-2.4h2.8zm.6 7c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zM8 9c.6 0 1-.4 1-1s-.4-1-1-1-1 .4-1 1 .4 1 1 1z" clip-rule="evenodd"/>
+      </svg>
+    </button>
   </div>`;
-}
-
-/**
- * Get stats dropdown scripts
- */
-function getStatsScripts(): string {
-  return `
-    // Stats dropdown handler
-    document.querySelectorAll('.stat-item.clickable').forEach(item => {
-      item.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const dropdown = item.querySelector('.stat-dropdown');
-        const isOpen = dropdown.classList.contains('show');
-
-        // Close all dropdowns
-        document.querySelectorAll('.stat-dropdown.show').forEach(d => d.classList.remove('show'));
-        document.querySelectorAll('.stat-item.active').forEach(i => i.classList.remove('active'));
-
-        // Toggle current dropdown
-        if (!isOpen) {
-          dropdown.classList.add('show');
-          item.classList.add('active');
-        }
-      });
-    });
-
-    // Close dropdown when clicking outside
-    document.addEventListener('click', (e) => {
-      if (!e.target.closest('.stat-item.clickable')) {
-        document.querySelectorAll('.stat-dropdown.show').forEach(d => d.classList.remove('show'));
-        document.querySelectorAll('.stat-item.active').forEach(i => i.classList.remove('active'));
-      }
-    });
-  `;
 }
 
 /**
