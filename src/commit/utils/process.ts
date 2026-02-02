@@ -7,9 +7,13 @@ const isWindows = process.platform === 'win32';
 
 function getShellEnv(env?: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
   const pathSeparator = isWindows ? ';' : ':';
-  const additionalPaths = isWindows
+  const additionalPaths: string[] = isWindows
     ? []
-    : ['/usr/local/bin', '/opt/homebrew/bin', `${process.env.HOME}/.local/bin`];
+    : [
+        '/usr/local/bin',
+        '/opt/homebrew/bin',
+        ...(process.env.HOME ? [`${process.env.HOME}/.local/bin`] : []),
+      ];
 
   return {
     ...process.env,

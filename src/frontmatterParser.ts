@@ -1,8 +1,21 @@
 import { Frontmatter, ParsedFile, Permissions } from './types';
 
+// Maximum content size for parsing (512KB) - prevents ReDoS and memory issues
+const MAX_CONTENT_SIZE = 512 * 1024;
+
 const FRONTMATTER_REGEX = /^---\s*\n([\s\S]*?)\n---\s*\n?([\s\S]*)$/;
 
 export function parseFrontmatter(content: string, filename?: string): ParsedFile {
+  // Skip frontmatter parsing if content is too large (prevent ReDoS)
+  // But still return the content for display purposes
+  if (content.length > MAX_CONTENT_SIZE) {
+    return {
+      frontmatter: {},
+      content: content,
+      preview: '[File too large to parse frontmatter]',
+    };
+  }
+
   // Handle JSON files (settings.json, settings.local.json)
   if (filename && filename.toLowerCase().endsWith('.json')) {
     return parseJsonFile(content);

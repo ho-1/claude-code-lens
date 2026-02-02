@@ -163,6 +163,21 @@ body {
   padding: 14px 18px;
   background: var(--vscode-titleBar-activeBackground, var(--vscode-sideBar-background));
   border-bottom: 1px solid var(--vscode-widget-border, rgba(255,255,255,0.06));
+  cursor: pointer;
+}
+
+.project-chevron {
+  font-size: 10px;
+  color: var(--vscode-descriptionForeground);
+  transition: transform 0.2s;
+}
+
+.project-chevron:not(.collapsed) {
+  transform: rotate(90deg);
+}
+
+.project-chevron.collapsed {
+  transform: rotate(0deg);
 }
 
 .project-icon {
@@ -183,6 +198,10 @@ body {
 
 .project-content {
   padding: 16px 18px;
+}
+
+.project-content.collapsed {
+  display: none;
 }
 
 /* Root Files (CLAUDE.md, settings.json, etc.) */
@@ -243,6 +262,21 @@ body {
   gap: 8px;
   margin-bottom: 8px;
   padding: 4px 0;
+  cursor: pointer;
+}
+
+.category-chevron {
+  font-size: 10px;
+  color: var(--vscode-descriptionForeground);
+  transition: transform 0.2s;
+}
+
+.category-chevron:not(.collapsed) {
+  transform: rotate(90deg);
+}
+
+.category-chevron.collapsed {
+  transform: rotate(0deg);
 }
 
 .category-name {
@@ -266,6 +300,10 @@ body {
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+.category-items.collapsed {
+  display: none;
 }
 
 .category-item {
@@ -328,7 +366,51 @@ body {
 .item-badge {
   font-size: 10px;
   color: var(--vscode-descriptionForeground);
+}
+
+/* Item Actions Container */
+.item-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   margin-left: auto;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.category-item:hover .item-actions {
+  opacity: 1;
+}
+
+/* Action Button */
+.action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 4px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--vscode-descriptionForeground);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.action-btn:hover {
+  background: var(--vscode-toolbar-hoverBackground);
+  color: var(--vscode-foreground);
+}
+
+.action-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Copy success feedback */
+.action-btn.copied {
+  color: var(--vscode-charts-green, #4ade80);
 }
 
 .item-description {

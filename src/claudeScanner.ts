@@ -4,6 +4,9 @@ import { ClaudeFolder, ClaudeConfigItem, ScanResult, HooksConfig } from './types
 import { parseFrontmatter } from './frontmatterParser';
 import { calculateStats } from './utils/statsCalculator';
 
+// Maximum file size for JSON parsing (1MB) - prevents memory exhaustion attacks
+const MAX_JSON_FILE_SIZE = 1024 * 1024;
+
 export async function scanWorkspace(): Promise<ScanResult> {
   const workspaceFolders = vscode.workspace.workspaceFolders;
   if (!workspaceFolders) {
@@ -237,6 +240,12 @@ async function countHooksInFolder(items: ClaudeConfigItem[]): Promise<number> {
     if (item.type === 'file' && item.name.toLowerCase().startsWith('settings') && item.name.endsWith('.json')) {
       try {
         const content = await vscode.workspace.fs.readFile(item.uri);
+
+        // Skip files that are too large
+        if (content.byteLength > MAX_JSON_FILE_SIZE) {
+          continue;
+        }
+
         const text = Buffer.from(content).toString('utf8');
         const json = JSON.parse(text);
 

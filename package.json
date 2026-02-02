@@ -2,7 +2,7 @@
   "name": "claude-code-lens",
   "displayName": "Claude Code Lens",
   "description": "Visualize and manage .claude configuration folders in VS Code. Browse, edit, and organize your Claude Code configurations with ease.",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "publisher": "Byungho",
   "icon": "resources/icon.png",
   "engines": {

@@ -1,16 +1,30 @@
 const isWindows = process.platform === 'win32';
 
+// Build paths only if environment variables exist
+function getWindowsPaths(): string[] {
+  const paths: string[] = [];
+  if (process.env.LOCALAPPDATA) {
+    paths.push(`${process.env.LOCALAPPDATA}\\Programs\\claude\\claude.exe`);
+  }
+  if (process.env.APPDATA) {
+    paths.push(`${process.env.APPDATA}\\npm\\claude.cmd`);
+  }
+  return paths;
+}
+
+function getUnixPaths(): string[] {
+  const paths: string[] = [
+    '/usr/local/bin/claude',
+    '/opt/homebrew/bin/claude',
+  ];
+  if (process.env.HOME) {
+    paths.push(`${process.env.HOME}/.local/bin/claude`);
+  }
+  return paths;
+}
+
 export const CLI = {
-  COMMON_PATHS: isWindows
-    ? [
-        `${process.env.LOCALAPPDATA}\\Programs\\claude\\claude.exe`,
-        `${process.env.APPDATA}\\npm\\claude.cmd`,
-      ]
-    : [
-        '/usr/local/bin/claude',
-        '/opt/homebrew/bin/claude',
-        `${process.env.HOME}/.local/bin/claude`,
-      ],
+  COMMON_PATHS: isWindows ? getWindowsPaths() : getUnixPaths(),
 
   SEARCH_COMMANDS: isWindows
     ? ['where claude']

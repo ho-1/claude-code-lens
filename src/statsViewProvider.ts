@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { ClaudeStats } from './types';
 import { getStatsIcons } from './constants/icons';
+import { escapeHtml } from './utils/escapeHtml';
 
 export class StatsViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'claudeLensStats';
@@ -52,6 +53,7 @@ export class StatsViewProvider implements vscode.WebviewViewProvider {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline';">
   <style>
     * {
       margin: 0;
@@ -177,7 +179,7 @@ export class StatsViewProvider implements vscode.WebviewViewProvider {
     </div>
     <div class="dropdown" id="dropdown-skills">
       ${skillsFormatted.length > 0
-        ? skillsFormatted.map(s => `<div class="dropdown-item">${s}</div>`).join('')
+        ? skillsFormatted.map(s => `<div class="dropdown-item">${escapeHtml(s)}</div>`).join('')
         : '<div class="dropdown-empty">No skills found</div>'
       }
     </div>
@@ -190,7 +192,7 @@ export class StatsViewProvider implements vscode.WebviewViewProvider {
     </div>
     <div class="dropdown" id="dropdown-commands">
       ${commandsFormatted.length > 0
-        ? commandsFormatted.map(c => `<div class="dropdown-item">${c}</div>`).join('')
+        ? commandsFormatted.map(c => `<div class="dropdown-item">${escapeHtml(c)}</div>`).join('')
         : '<div class="dropdown-empty">No commands found</div>'
       }
     </div>
@@ -203,7 +205,7 @@ export class StatsViewProvider implements vscode.WebviewViewProvider {
     </div>
     <div class="dropdown" id="dropdown-agents">
       ${agentsFormatted.length > 0
-        ? agentsFormatted.map(a => `<div class="dropdown-item">${a}</div>`).join('')
+        ? agentsFormatted.map(a => `<div class="dropdown-item">${escapeHtml(a)}</div>`).join('')
         : '<div class="dropdown-empty">No agents found</div>'
       }
     </div>

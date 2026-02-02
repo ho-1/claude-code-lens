@@ -7,6 +7,7 @@ import { ClaudeFolder, ClaudeConfigItem, ScanResult } from '../types';
 import { COLORS } from '../constants/colors';
 import { SVG_ICONS } from '../constants/icons';
 import { getSvgIcon, getSvgFolderIcon } from '../utils/iconUtils';
+import { escapeHtml } from '../utils/escapeHtml';
 
 // Category accent colors
 const CATEGORY_COLORS = {
@@ -65,7 +66,15 @@ function getDisplayPath(folder: ClaudeFolder): string {
     folder.claudePath.fsPath
   );
   const isRoot = !relativePath || relativePath === '.claude';
-  return isRoot ? 'root' : relativePath.replace(/\/?\.claude$/, '');
+
+  // For root .claude, show the project folder name
+  if (isRoot) {
+    return folder.workspaceFolder.name;
+  }
+
+  // For nested .claude, show project name + path
+  const subPath = relativePath.replace(/\/?\.claude$/, '');
+  return `${folder.workspaceFolder.name}/${subPath}`;
 }
 
 /**
@@ -83,6 +92,7 @@ function renderProjectCard(folder: ClaudeFolder, index: number): string {
   return `
   <div class="project-card" data-project="${index}">
     <div class="project-header">
+      <span class="project-chevron">▶</span>
       <span class="project-icon">${folderIcon}</span>
       <span class="project-title">${escapeHtml(displayPath)}</span>
     </div>
@@ -135,6 +145,7 @@ function renderCategorySection(category: CategoryType, items: ClaudeConfigItem[]
   return `
   <div class="category-section" data-category="${category}" style="--accent-color: ${accentColor}">
     <div class="category-header">
+      <span class="category-chevron">▶</span>
       <span class="category-name">${displayName}</span>
       <span class="category-count">${items.length}</span>
     </div>
@@ -156,6 +167,10 @@ function renderCategoryItem(item: ClaudeConfigItem, category: CategoryType): str
     ? getSvgFolderIcon(item.name, true)
     : getSvgIcon(item.name, category);
 
+  // Copy text: always with / prefix
+  const copyText = `/${displayName}`;
+  const copyIcon = SVG_ICONS.clipboard('currentColor');
+
   return `
   <div class="category-item ${isExpandable ? 'expandable' : ''}"
        data-path="${escapeHtml(item.uri.fsPath)}"
@@ -166,6 +181,13 @@ function renderCategoryItem(item: ClaudeConfigItem, category: CategoryType): str
         <span class="item-icon">${icon}</span>
         <span class="item-name">${escapeHtml(displayName)}</span>
         ${item.type === 'folder' ? `<span class="item-badge">${item.children?.length || 0} files</span>` : ''}
+        <div class="item-actions">
+          <button class="action-btn copy-btn"
+                  data-copy-text="${escapeHtml(copyText)}"
+                  title="Copy name">
+            ${copyIcon}
+          </button>
+        </div>
       </div>
       ${description ? `<div class="item-description">${escapeHtml(description)}</div>` : ''}
     </div>
@@ -201,18 +223,6 @@ function renderEmptyState(): string {
 }
 
 /**
- * Escape HTML special characters
- */
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
-
-/**
  * Get card view specific scripts
  */
 export function getCardViewScripts(): string {
@@ -229,11 +239,30 @@ export function getCardViewScripts(): string {
 
     // Category item click - opens file if not expandable
     document.querySelectorAll('.category-item:not(.expandable)').forEach(item => {
-      item.addEventListener('click', () => {
+      item.addEventListener('click', (e) => {
+        // Ignore if clicking on action button
+        if (e.target.closest('.action-btn')) return;
         vscode.postMessage({
           type: 'openFile',
           path: item.dataset.path
         });
+      });
+    });
+
+    // Action button: Copy name
+    document.querySelectorAll('.action-btn.copy-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const copyText = btn.dataset.copyText;
+        if (copyText) {
+          try {
+            await navigator.clipboard.writeText(copyText);
+            btn.classList.add('copied');
+            setTimeout(() => btn.classList.remove('copied'), 1500);
+          } catch (err) {
+            console.error('Failed to copy:', err);
+          }
+        }
       });
     });
 
@@ -257,6 +286,30 @@ export function getCardViewScripts(): string {
           type: 'openFile',
           path: subfile.dataset.path
         });
+      });
+    });
+
+    // Category header toggle
+    document.querySelectorAll('.category-header').forEach(header => {
+      header.addEventListener('click', () => {
+        const section = header.closest('.category-section');
+        const items = section.querySelector('.category-items');
+        const chevron = header.querySelector('.category-chevron');
+
+        items.classList.toggle('collapsed');
+        chevron.classList.toggle('collapsed');
+      });
+    });
+
+    // Project header toggle
+    document.querySelectorAll('.project-header').forEach(header => {
+      header.addEventListener('click', () => {
+        const card = header.closest('.project-card');
+        const content = card.querySelector('.project-content');
+        const chevron = header.querySelector('.project-chevron');
+
+        content.classList.toggle('collapsed');
+        chevron.classList.toggle('collapsed');
       });
     });
   `;

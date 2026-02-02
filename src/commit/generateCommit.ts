@@ -167,7 +167,7 @@ export async function generateCommitCommand(
               return;
             }
             if (error instanceof Error) {
-              vscode.window.showErrorMessage(error.message);
+              vscode.window.showErrorMessage(sanitizeErrorMessage(error.message));
             }
           }
         },
@@ -182,7 +182,51 @@ export async function generateCommitCommand(
     }
   } catch (error) {
     if (error instanceof Error) {
-      vscode.window.showErrorMessage(`Error: ${error.message}`);
+      vscode.window.showErrorMessage(sanitizeErrorMessage(error.message));
     }
   }
+}
+
+/**
+ * Sanitize error messages to prevent information disclosure
+ * Removes file paths, stack traces, and other sensitive information
+ */
+function sanitizeErrorMessage(message: string): string {
+  // Known safe error messages that can be shown directly
+  const safePatterns = [
+    'Claude CLI not found',
+    'Please run "claude login"',
+    'Request timed out',
+    'Claude returned an empty response',
+    'Aborted',
+    'not logged in',
+    'ETIMEDOUT',
+    'timeout',
+  ];
+
+  for (const pattern of safePatterns) {
+    if (message.includes(pattern)) {
+      // Return only the first line, trimmed
+      return message.split('\n')[0].trim();
+    }
+  }
+
+  // Remove absolute file paths only (not relative/API paths)
+  // Unix: paths starting with / followed by typical directory names
+  // Windows: paths starting with drive letter
+  let sanitized = message
+    .replace(/\/(?:Users|home|var|tmp|etc|usr|opt)\/[\w\-./]+/gi, '[path]')
+    .replace(/[A-Z]:\\[\w\-\\./]+/gi, '[path]')
+    .replace(/\s+at\s+.+:\d+:\d+/g, '')  // Remove stack trace lines
+    .replace(/\n\s*at\s+.+/g, '');        // Remove multi-line stack traces
+
+  // Take only first line
+  sanitized = sanitized.split('\n')[0].trim();
+
+  // If message becomes too short or empty after sanitization, use generic message
+  if (sanitized.length < 5) {
+    return 'An error occurred while generating commit message';
+  }
+
+  return sanitized;
 }

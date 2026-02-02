@@ -90,6 +90,10 @@ export function activate(context: vscode.ExtensionContext) {
           if (!/^[a-zA-Z0-9_\-\.]+$/.test(value)) {
             return 'File name can only contain letters, numbers, hyphens, underscores, and dots';
           }
+          // Prevent path traversal (allow dotfiles like .gitignore)
+          if (value === '.' || value === '..' || value.includes('..')) {
+            return 'Invalid file name';
+          }
           return null;
         }
       });
@@ -123,6 +127,10 @@ export function activate(context: vscode.ExtensionContext) {
           if (!/^[a-zA-Z0-9_\-]+$/.test(value)) {
             return 'Folder name can only contain letters, numbers, hyphens, and underscores';
           }
+          // Prevent path traversal
+          if (value === '.' || value === '..') {
+            return 'Invalid folder name';
+          }
           return null;
         }
       });
@@ -138,6 +146,28 @@ export function activate(context: vscode.ExtensionContext) {
     'claudeLens.delete',
     async (item: TreeItem) => {
       const items = treeView.selection.length > 1 ? treeView.selection : [item];
+
+      // Validate all items are within .claude folders
+      for (const i of items) {
+        if (!i.configItem?.uri) continue;
+        const itemPath = i.configItem.uri.fsPath;
+        const normalizedPath = path.normalize(itemPath);
+
+        // Must contain .claude in the path
+        if (!normalizedPath.includes(`${path.sep}.claude${path.sep}`) &&
+            !normalizedPath.endsWith(`${path.sep}.claude`)) {
+          vscode.window.showErrorMessage('Cannot delete files outside .claude folders');
+          return;
+        }
+
+        // Prevent deleting .claude folder itself
+        if (normalizedPath.endsWith(`${path.sep}.claude`) ||
+            path.basename(normalizedPath) === '.claude') {
+          vscode.window.showErrorMessage('Cannot delete the .claude folder itself');
+          return;
+        }
+      }
+
       const names = items.map(i => i.configItem?.name || i.label).join(', ');
       const itemCount = items.length;
 
@@ -176,6 +206,10 @@ export function activate(context: vscode.ExtensionContext) {
           }
           if (!/^[a-zA-Z0-9_\-\.]+$/.test(value)) {
             return 'Name can only contain letters, numbers, hyphens, underscores, and dots';
+          }
+          // Prevent path traversal (allow dotfiles like .gitignore)
+          if (value === '.' || value === '..' || value.includes('..')) {
+            return 'Invalid name';
           }
           return null;
         }
