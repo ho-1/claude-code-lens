@@ -1,5 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+import * as os from 'os';
+import * as fs from 'fs';
 import { ClaudeTreeProvider, TreeItem } from './claudeTreeProvider';
 import { StatsViewProvider } from './statsViewProvider';
 import { createDashboardPanel, updateDashboardPanel, disposeDashboardPanel } from './webview';
@@ -8,6 +10,8 @@ import { generateCommitCommand, stopGeneration } from './commit';
 
 let fileWatcher: vscode.FileSystemWatcher | undefined;
 let mcpWatcher: vscode.FileSystemWatcher | undefined;
+let teamWatcher: fs.FSWatcher | undefined;
+let taskWatcher: fs.FSWatcher | undefined;
 let treeProvider: ClaudeTreeProvider;
 let statsProvider: StatsViewProvider;
 let treeView: vscode.TreeView<TreeItem>;
@@ -236,6 +240,44 @@ export function activate(context: vscode.ExtensionContext) {
   mcpWatcher.onDidChange(refreshAll);
   mcpWatcher.onDidDelete(refreshAll);
 
+  // Watch ~/.claude/teams/ and ~/.claude/tasks/ for real-time updates
+  const homeDir = os.homedir();
+  const teamsDir = path.join(homeDir, '.claude', 'teams');
+  const tasksDir = path.join(homeDir, '.claude', 'tasks');
+
+  // Debounce refreshAll for team/task changes
+  let teamRefreshTimeout: ReturnType<typeof setTimeout> | undefined;
+  const debouncedRefresh = () => {
+    if (teamRefreshTimeout) clearTimeout(teamRefreshTimeout);
+    teamRefreshTimeout = setTimeout(refreshAll, 500);
+  };
+
+  try {
+    if (fs.existsSync(teamsDir)) {
+      teamWatcher = fs.watch(teamsDir, { recursive: true }, debouncedRefresh);
+    }
+  } catch { /* teams dir doesn't exist yet */ }
+
+  try {
+    if (fs.existsSync(tasksDir)) {
+      taskWatcher = fs.watch(tasksDir, { recursive: true }, debouncedRefresh);
+    }
+  } catch { /* tasks dir doesn't exist yet */ }
+
+  // Periodically check if team/task dirs appeared (they're created at runtime)
+  const dirCheckInterval = setInterval(() => {
+    try {
+      if (!teamWatcher && fs.existsSync(teamsDir)) {
+        teamWatcher = fs.watch(teamsDir, { recursive: true }, debouncedRefresh);
+        debouncedRefresh();
+      }
+      if (!taskWatcher && fs.existsSync(tasksDir)) {
+        taskWatcher = fs.watch(tasksDir, { recursive: true }, debouncedRefresh);
+        debouncedRefresh();
+      }
+    } catch { /* ignore */ }
+  }, 10000);
+
   // Watch for workspace folder changes
   const workspaceFolderWatcher = vscode.workspace.onDidChangeWorkspaceFolders(refreshAll);
 
@@ -254,7 +296,13 @@ export function activate(context: vscode.ExtensionContext) {
     fileWatcher,
     mcpWatcher,
     workspaceFolderWatcher,
-    { dispose: disposeDashboardPanel }
+    { dispose: disposeDashboardPanel },
+    { dispose: () => {
+      if (teamWatcher) teamWatcher.close();
+      if (taskWatcher) taskWatcher.close();
+      clearInterval(dirCheckInterval);
+      if (teamRefreshTimeout) clearTimeout(teamRefreshTimeout);
+    }},
   );
 }
 
@@ -297,6 +345,12 @@ export function deactivate() {
   }
   if (mcpWatcher) {
     mcpWatcher.dispose();
+  }
+  if (teamWatcher) {
+    teamWatcher.close();
+  }
+  if (taskWatcher) {
+    taskWatcher.close();
   }
   disposeDashboardPanel();
 }

@@ -2,13 +2,13 @@
  * Statistics calculator for Claude config items
  */
 
-import { ClaudeFolder, ClaudeConfigItem, ClaudeStats } from '../types';
+import { ClaudeFolder, ClaudeConfigItem, ClaudeStats, TeamData } from '../types';
 import { getFolderCategory } from '../constants/folderCategories';
 
 /**
  * Calculate statistics from scanned Claude folders
  */
-export function calculateStats(folders: ClaudeFolder[]): ClaudeStats {
+export function calculateStats(folders: ClaudeFolder[], teamData?: TeamData): ClaudeStats {
   const stats: ClaudeStats = {
     totalFiles: 0,
     skills: 0,
@@ -16,9 +16,13 @@ export function calculateStats(folders: ClaudeFolder[]): ClaudeStats {
     agents: 0,
     hooks: 0,
     configs: 0,
+    teams: 0,
+    tasks: 0,
+    teammates: 0,
     skillItems: [],
     commandItems: [],
     agentItems: [],
+    teamItems: [],
   };
 
   for (const folder of folders) {
@@ -32,6 +36,14 @@ export function calculateStats(folders: ClaudeFolder[]): ClaudeStats {
       stats.totalFiles++;
       stats.configs++;
     }
+  }
+
+  // Add team/task stats
+  if (teamData) {
+    stats.teams = teamData.teams.length;
+    stats.tasks = teamData.tasks.length;
+    stats.teammates = teamData.teams.reduce((sum, t) => sum + t.members.length, 0);
+    stats.teamItems = teamData.teams.map(t => t.name);
   }
 
   return stats;

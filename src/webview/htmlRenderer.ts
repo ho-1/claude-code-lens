@@ -7,7 +7,7 @@ import { COLORS } from '../constants/colors';
 import { SVG_ICONS } from '../constants/icons';
 import { DASHBOARD_STYLES } from './styles';
 import { renderCardView, getCardViewScripts } from './cardView';
-import { renderGraphView, getGraphViewScripts } from './graphView';
+import { renderTeamView, getTeamViewScripts } from './teamView';
 
 /**
  * Generate the complete HTML content for the dashboard
@@ -36,6 +36,7 @@ export function getHtmlContent(result: ScanResult): string {
       <a href="https://docs.anthropic.com/en/docs/claude-code/hooks" class="guide-link">Hooks</a>
       <a href="https://docs.anthropic.com/en/docs/claude-code/mcp" class="guide-link">MCP</a>
       <a href="https://docs.anthropic.com/en/docs/claude-code/sub-agents" class="guide-link">Agents</a>
+      <a href="https://code.claude.com/docs/en/agent-teams" class="guide-link">Teams</a>
       <span class="guide-separator">|</span>
       <a href="https://skills.sh/" class="guide-link community">skills.sh</a>
     </div>
@@ -43,14 +44,14 @@ export function getHtmlContent(result: ScanResult): string {
 
   ${renderStatsBar(stats)}
 
-  ${renderTabBar()}
+  ${renderTabBar(result)}
 
   <div id="tab-card" class="tab-content active">
     ${renderCardView(result)}
   </div>
 
-  <div id="tab-graph" class="tab-content">
-    ${renderGraphView(result)}
+  <div id="tab-teams" class="tab-content">
+    ${renderTeamView(result)}
   </div>
 
   <script>
@@ -78,7 +79,7 @@ export function getHtmlContent(result: ScanResult): string {
 
     ${getCardViewScripts()}
 
-    ${getGraphViewScripts()}
+    ${getTeamViewScripts()}
   </script>
 </body>
 </html>`;
@@ -87,7 +88,10 @@ export function getHtmlContent(result: ScanResult): string {
 /**
  * Render the tab bar
  */
-function renderTabBar(): string {
+function renderTabBar(result: ScanResult): string {
+  const hasTeamData = result.teamData.teams.length > 0 || result.teamData.tasks.length > 0;
+  const teamBadge = hasTeamData ? `<span class="tab-badge">${result.teamData.teams.length + result.teamData.tasks.length}</span>` : '';
+
   return `
   <div class="tab-bar">
     <button class="tab-btn active" data-tab="card">
@@ -96,12 +100,12 @@ function renderTabBar(): string {
       </svg>
       Cards
     </button>
-    <button class="tab-btn" data-tab="graph">
-      <svg viewBox="0 0 16 16" fill="currentColor">
-        <path d="M3 3a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm0 5a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm0 5a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm6-10a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm0 10a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm6-5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
-        <path d="M3 3l5 0m-5 5l10 0m-10 5l5 0m5-5l0-5m0 10l0-5" stroke="currentColor" stroke-width="1" fill="none"/>
+    <button class="tab-btn" data-tab="teams">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
       </svg>
-      Graph
+      Teams
+      ${teamBadge}
     </button>
   </div>`;
 }
@@ -138,6 +142,20 @@ function renderStatsBar(stats: ScanResult['stats']): string {
         <span class="stat-value">${stats.configs}</span>
         <span class="stat-label">Configs</span>
       </div>
+      ${stats.teams > 0 ? `
+      <div class="stat-item">
+        <span class="stat-icon">${SVG_ICONS.team(COLORS.team)}</span>
+        <span class="stat-value">${stats.teams}</span>
+        <span class="stat-label">Teams</span>
+      </div>
+      ` : ''}
+      ${stats.tasks > 0 ? `
+      <div class="stat-item">
+        <span class="stat-icon">${SVG_ICONS.task(COLORS.task)}</span>
+        <span class="stat-value">${stats.tasks}</span>
+        <span class="stat-label">Tasks</span>
+      </div>
+      ` : ''}
     </div>
     <button class="settings-btn" onclick="openSettings()" title="Extension Settings">
       <svg viewBox="0 0 16 16" fill="currentColor">

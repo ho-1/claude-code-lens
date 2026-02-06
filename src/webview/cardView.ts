@@ -201,12 +201,16 @@ function renderCategoryItem(item: ClaudeConfigItem, category: CategoryType): str
 function renderExpandedContent(children: ClaudeConfigItem[]): string {
   return `
   <div class="item-expanded collapsed">
-    ${children.map(child => `
+    ${children.map(child => {
+      const icon = child.type === 'folder'
+        ? getSvgFolderIcon(child.name, false)
+        : getSvgIcon(child.name);
+      return `
       <div class="subfile" data-path="${escapeHtml(child.uri.fsPath)}">
-        <span class="subfile-icon">${getSvgIcon(child.name)}</span>
+        <span class="subfile-icon">${icon}</span>
         <span class="subfile-name">${escapeHtml(child.name)}</span>
-      </div>
-    `).join('')}
+      </div>`;
+    }).join('')}
   </div>`;
 }
 

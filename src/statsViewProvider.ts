@@ -40,7 +40,7 @@ export class StatsViewProvider implements vscode.WebviewViewProvider {
   private _updateHtml(): void {
     if (!this._view) return;
 
-    const stats = this._stats || { totalFiles: 0, skills: 0, commands: 0, agents: 0, hooks: 0, configs: 0, skillItems: [], commandItems: [], agentItems: [] };
+    const stats = this._stats || { totalFiles: 0, skills: 0, commands: 0, agents: 0, hooks: 0, configs: 0, teams: 0, tasks: 0, teammates: 0, skillItems: [], commandItems: [], agentItems: [], teamItems: [] };
     const icons = getStatsIcons();
 
     // Format items for display
@@ -221,6 +221,26 @@ export class StatsViewProvider implements vscode.WebviewViewProvider {
       <div class="stat-info">
         <span class="stat-value">${stats.configs}</span>
         <span class="stat-label">Configs</span>
+      </div>
+    </div>
+    <div class="stat-card clickable" data-dropdown="teams">
+      <span class="stat-icon">${icons.team}</span>
+      <div class="stat-info">
+        <span class="stat-value">${stats.teams}</span>
+        <span class="stat-label">Teams</span>
+      </div>
+    </div>
+    <div class="dropdown" id="dropdown-teams">
+      ${stats.teamItems.length > 0
+        ? stats.teamItems.map(t => `<div class="dropdown-item">${escapeHtml(t)}</div>`).join('')
+        : '<div class="dropdown-empty">No teams found</div>'
+      }
+    </div>
+    <div class="stat-card">
+      <span class="stat-icon">${icons.task}</span>
+      <div class="stat-info">
+        <span class="stat-value">${stats.tasks}</span>
+        <span class="stat-label">Tasks</span>
       </div>
     </div>
   </div>

@@ -49,9 +49,52 @@ export interface ClaudeStats {
   agents: number;
   hooks: number;
   configs: number;
+  teams: number;
+  tasks: number;
+  teammates: number;
   skillItems: string[];
   commandItems: string[];
   agentItems: string[];
+  teamItems: string[];
+}
+
+// Agent Teams types
+export type TaskStatus = 'pending' | 'in_progress' | 'completed';
+
+export interface TeamMember {
+  name: string;
+  agentId: string;
+  agentType: 'lead' | 'teammate';
+}
+
+export interface TeamConfig {
+  name: string;
+  configPath: string;
+  members: TeamMember[];
+  createdAt?: string;
+}
+
+export interface TaskItem {
+  id: string;
+  subject: string;
+  description?: string;
+  status: TaskStatus;
+  owner?: string;
+  blockedBy?: string[];
+  blocks?: string[];
+  teamName: string;
+  filePath: string;
+}
+
+export interface TeamData {
+  teams: TeamConfig[];
+  tasks: TaskItem[];
+}
+
+export interface AgentTeamsSettings {
+  enabled: boolean;
+  teammateMode?: 'in-process' | 'tmux' | 'auto';
+  dangerouslySkipPermissions?: boolean;
 }
 
 // Hooks configuration structure from settings.json
@@ -67,4 +110,6 @@ export interface HooksConfig {
 export interface ScanResult {
   folders: ClaudeFolder[];
   stats: ClaudeStats;
+  teamData: TeamData;
+  agentTeamsSettings: AgentTeamsSettings;
 }

@@ -2,7 +2,7 @@
  * Folder category constants for Claude config viewer
  */
 
-export const FOLDER_CATEGORIES = ['agents', 'skills', 'commands', 'hooks', 'rules'] as const;
+export const FOLDER_CATEGORIES = ['agents', 'skills', 'commands', 'hooks', 'rules', 'teams', 'tasks'] as const;
 export type FolderCategory = (typeof FOLDER_CATEGORIES)[number];
 
 /**

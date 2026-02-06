@@ -53,6 +53,10 @@ function getSvgIconForCategory(category: FolderCategory): string {
       return SVG_ICONS.bolt(COLORS.bolt);
     case 'rules':
       return SVG_ICONS.book(COLORS.book);
+    case 'teams':
+      return SVG_ICONS.team(COLORS.team);
+    case 'tasks':
+      return SVG_ICONS.task(COLORS.task);
     default:
       return SVG_ICONS.file(COLORS.file);
   }
@@ -88,6 +92,10 @@ function getCategoryColor(category: FolderCategory): string {
       return COLORS.bolt;
     case 'rules':
       return COLORS.book;
+    case 'teams':
+      return COLORS.team;
+    case 'tasks':
+      return COLORS.task;
     default:
       return COLORS.file;
   }
@@ -159,6 +167,16 @@ function getThemeIconForCategory(category: FolderCategory): vscode.ThemeIcon {
         THEME_ICON_NAMES.book,
         new vscode.ThemeColor(THEME_COLORS.book)
       );
+    case 'teams':
+      return new vscode.ThemeIcon(
+        THEME_ICON_NAMES.team,
+        new vscode.ThemeColor(THEME_COLORS.team)
+      );
+    case 'tasks':
+      return new vscode.ThemeIcon(
+        THEME_ICON_NAMES.task,
+        new vscode.ThemeColor(THEME_COLORS.task)
+      );
     default:
       return new vscode.ThemeIcon(THEME_ICON_NAMES.file);
   }
@@ -199,6 +217,10 @@ function getThemeColorForCategory(category: FolderCategory): string {
       return THEME_COLORS.bolt;
     case 'rules':
       return THEME_COLORS.book;
+    case 'teams':
+      return THEME_COLORS.team;
+    case 'tasks':
+      return THEME_COLORS.task;
     default:
       return THEME_COLORS.gear;
   }

@@ -3,14 +3,19 @@ import * as path from 'path';
 import { ClaudeFolder, ClaudeConfigItem, ScanResult, HooksConfig } from './types';
 import { parseFrontmatter } from './frontmatterParser';
 import { calculateStats } from './utils/statsCalculator';
+import { scanTeamData, scanAgentTeamsSettings } from './teamScanner';
 
 // Maximum file size for JSON parsing (1MB) - prevents memory exhaustion attacks
 const MAX_JSON_FILE_SIZE = 1024 * 1024;
 
 export async function scanWorkspace(): Promise<ScanResult> {
   const workspaceFolders = vscode.workspace.workspaceFolders;
+  const emptyStats = { totalFiles: 0, skills: 0, commands: 0, agents: 0, hooks: 0, configs: 0, teams: 0, tasks: 0, teammates: 0, skillItems: [], commandItems: [], agentItems: [], teamItems: [] };
+  const emptyTeamData = { teams: [], tasks: [] };
+  const defaultSettings = { enabled: false, teammateMode: 'auto' as const };
+
   if (!workspaceFolders) {
-    return { folders: [], stats: { totalFiles: 0, skills: 0, commands: 0, agents: 0, hooks: 0, configs: 0, skillItems: [], commandItems: [], agentItems: [] } };
+    return { folders: [], stats: emptyStats, teamData: emptyTeamData, agentTeamsSettings: defaultSettings };
   }
 
   const folders: ClaudeFolder[] = [];
@@ -20,9 +25,15 @@ export async function scanWorkspace(): Promise<ScanResult> {
     folders.push(...claudeFolders);
   }
 
-  const stats = calculateStats(folders);
+  // Scan team data and settings in parallel
+  const [teamData, agentTeamsSettings] = await Promise.all([
+    scanTeamData(),
+    scanAgentTeamsSettings(),
+  ]);
 
-  return { folders, stats };
+  const stats = calculateStats(folders, teamData);
+
+  return { folders, stats, teamData, agentTeamsSettings };
 }
 
 async function findClaudeFolders(workspaceFolder: vscode.WorkspaceFolder): Promise<ClaudeFolder[]> {
