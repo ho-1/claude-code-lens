@@ -112,4 +112,5 @@ export interface ScanResult {
   stats: ClaudeStats;
   teamData: TeamData;
   agentTeamsSettings: AgentTeamsSettings;
+  insights: import('./insightsTypes').InsightsData | null;
 }

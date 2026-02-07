@@ -2,6 +2,8 @@
  * CSS styles for the dashboard webview
  */
 
+import { INSIGHTS_STYLES } from './insightsStyles';
+
 export const DASHBOARD_STYLES = `
 * {
   margin: 0;
@@ -23,6 +25,34 @@ body {
   margin-bottom: 24px;
   padding-bottom: 16px;
   border-bottom: 1px solid var(--vscode-widget-border, rgba(255,255,255,0.1));
+}
+
+.header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.header-top .settings-btn {
+  background: none;
+  border: 1px solid var(--vscode-widget-border, rgba(255,255,255,0.1));
+  border-radius: 6px;
+  padding: 6px;
+  cursor: pointer;
+  color: var(--vscode-descriptionForeground);
+  display: flex;
+  align-items: center;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.header-top .settings-btn:hover {
+  color: var(--vscode-foreground);
+  border-color: var(--vscode-focusBorder);
+}
+
+.header-top .settings-btn svg {
+  width: 16px;
+  height: 16px;
 }
 
 .title {
@@ -73,78 +103,6 @@ body {
 
 .guide-links .guide-link.community {
   color: var(--vscode-charts-purple, #a855f7);
-}
-
-/* Stats Bar Container */
-.stats-bar-container {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 24px;
-}
-
-/* Stats Bar */
-.stats-bar {
-  display: inline-flex;
-  gap: 4px;
-  padding: 4px;
-  background: var(--vscode-input-background);
-  border-radius: 8px;
-}
-
-/* Settings Button */
-.settings-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 8px;
-  background: var(--vscode-input-background);
-  border: 1px solid var(--vscode-widget-border, rgba(255,255,255,0.1));
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.15s;
-  color: var(--vscode-descriptionForeground);
-}
-
-.settings-btn:hover {
-  background: var(--vscode-list-hoverBackground);
-  color: var(--vscode-foreground);
-}
-
-.settings-btn svg {
-  width: 16px;
-  height: 16px;
-}
-
-.stat-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  border-radius: 6px;
-  transition: background 0.15s;
-  position: relative;
-}
-
-.stat-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.stat-icon svg {
-  width: 16px;
-  height: 16px;
-}
-
-.stat-value {
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.stat-label {
-  font-size: 11px;
-  color: var(--vscode-descriptionForeground);
 }
 
 /* Project Card */
@@ -744,36 +702,6 @@ body {
 }
 
 /* Task Board */
-.task-progress-bar {
-  position: relative;
-  height: 24px;
-  background: var(--vscode-input-background);
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-.task-progress-fill {
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-  background: linear-gradient(90deg, #10B981, #14B8A6);
-  border-radius: 12px;
-  transition: width 0.3s ease;
-  min-width: 2px;
-}
-
-.task-progress-text {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--vscode-foreground);
-  text-shadow: 0 0 4px var(--vscode-editor-background);
-}
-
 .task-board {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -963,5 +891,6 @@ body {
   font-size: 10px;
 }
 
+${INSIGHTS_STYLES}
 `;
 

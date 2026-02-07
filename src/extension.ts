@@ -7,11 +7,14 @@ import { StatsViewProvider } from './statsViewProvider';
 import { createDashboardPanel, updateDashboardPanel, disposeDashboardPanel } from './webview';
 import { scanWorkspace } from './claudeScanner';
 import { generateCommitCommand, stopGeneration } from './commit';
+import { scanInsights, invalidateInsightsCache } from './insightsScanner';
+import { createProductivityPulse, updateProductivityPulse } from './productivityPulse';
 
 let fileWatcher: vscode.FileSystemWatcher | undefined;
 let mcpWatcher: vscode.FileSystemWatcher | undefined;
 let teamWatcher: fs.FSWatcher | undefined;
 let taskWatcher: fs.FSWatcher | undefined;
+let insightsWatcher: fs.FSWatcher | undefined;
 let treeProvider: ClaudeTreeProvider;
 let statsProvider: StatsViewProvider;
 let treeView: vscode.TreeView<TreeItem>;
@@ -72,6 +75,10 @@ export function activate(context: vscode.ExtensionContext) {
       let scanResult = treeProvider.getScanResult();
       if (!scanResult) {
         scanResult = await scanWorkspace();
+      }
+      // Ensure insights data is loaded
+      if (!scanResult.insights) {
+        scanResult.insights = await scanInsights();
       }
       createDashboardPanel(context.extensionUri, scanResult);
     }
@@ -264,7 +271,21 @@ export function activate(context: vscode.ExtensionContext) {
     }
   } catch { /* tasks dir doesn't exist yet */ }
 
-  // Periodically check if team/task dirs appeared (they're created at runtime)
+  // Watch ~/.claude/stats-cache.json for insights updates
+  const statsCachePath = path.join(homeDir, '.claude', 'stats-cache.json');
+  try {
+    if (fs.existsSync(statsCachePath)) {
+      insightsWatcher = fs.watch(statsCachePath, () => {
+        invalidateInsightsCache();
+        debouncedRefresh();
+      });
+    }
+  } catch { /* stats-cache.json may not exist yet */ }
+
+  // Create Productivity Pulse status bar
+  createProductivityPulse(context);
+
+  // Periodically check if team/task/stats dirs appeared (they're created at runtime)
   const dirCheckInterval = setInterval(() => {
     try {
       if (!teamWatcher && fs.existsSync(teamsDir)) {
@@ -273,6 +294,13 @@ export function activate(context: vscode.ExtensionContext) {
       }
       if (!taskWatcher && fs.existsSync(tasksDir)) {
         taskWatcher = fs.watch(tasksDir, { recursive: true }, debouncedRefresh);
+        debouncedRefresh();
+      }
+      if (!insightsWatcher && fs.existsSync(statsCachePath)) {
+        insightsWatcher = fs.watch(statsCachePath, () => {
+          invalidateInsightsCache();
+          debouncedRefresh();
+        });
         debouncedRefresh();
       }
     } catch { /* ignore */ }
@@ -300,6 +328,7 @@ export function activate(context: vscode.ExtensionContext) {
     { dispose: () => {
       if (teamWatcher) teamWatcher.close();
       if (taskWatcher) taskWatcher.close();
+      if (insightsWatcher) insightsWatcher.close();
       clearInterval(dirCheckInterval);
       if (teamRefreshTimeout) clearTimeout(teamRefreshTimeout);
     }},
@@ -334,8 +363,13 @@ async function refreshAll(): Promise<void> {
   await treeProvider.refresh();
   const scanResult = treeProvider.getScanResult();
   if (scanResult) {
-    statsProvider.updateStats(scanResult.stats);
-    updateDashboardPanel(scanResult);
+    const insights = await scanInsights();
+    treeProvider.updateInsights(insights);
+
+    const updatedResult = treeProvider.getScanResult()!;
+    statsProvider.updateStats(updatedResult.stats);
+    updateDashboardPanel(updatedResult);
+    updateProductivityPulse(insights);
   }
 }
 
@@ -351,6 +385,9 @@ export function deactivate() {
   }
   if (taskWatcher) {
     taskWatcher.close();
+  }
+  if (insightsWatcher) {
+    insightsWatcher.close();
   }
   disposeDashboardPanel();
 }

@@ -3,18 +3,17 @@
  */
 
 import { ScanResult } from '../types';
-import { COLORS } from '../constants/colors';
-import { SVG_ICONS } from '../constants/icons';
 import { DASHBOARD_STYLES } from './styles';
 import { renderCardView, getCardViewScripts } from './cardView';
 import { renderTeamView, getTeamViewScripts } from './teamView';
+import { renderTaskView, getTaskViewScripts } from './taskView';
+import { renderInsightsView, getInsightsViewScripts } from './insightsView';
+import { renderSessionExplorer, getSessionExplorerScripts } from './insightsSections/sessionExplorer';
 
 /**
  * Generate the complete HTML content for the dashboard
  */
 export function getHtmlContent(result: ScanResult): string {
-  const { stats } = result;
-
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -28,7 +27,14 @@ export function getHtmlContent(result: ScanResult): string {
 </head>
 <body>
   <div class="header">
-    <div class="title">Claude Code Dashboard</div>
+    <div class="header-top">
+      <div class="title">Claude Code Dashboard</div>
+      <button class="settings-btn" onclick="openSettings()" title="Extension Settings">
+        <svg viewBox="0 0 16 16" fill="currentColor">
+          <path fill-rule="evenodd" d="M9.1 4.4L8.6 2H7.4l-.5 2.4-.7.3-2-1.3-.9.8 1.3 2-.2.7-2.4.5v1.2l2.4.5.3.8-1.3 2 .8.8 2-1.3.8.3.4 2.3h1.2l.5-2.4.8-.3 2 1.3.8-.8-1.3-2 .3-.8 2.3-.4V7.4l-2.4-.5-.3-.8 1.3-2-.8-.8-2 1.3-.7-.2zM9.4 1l.5 2.4L12 2.1l2 2-1.4 2.1 2.4.4v2.8l-2.4.5L14 12l-2 2-2.1-1.4-.5 2.4H6.6l-.5-2.4L4 13.9l-2-2 1.4-2.1L1 9.4V6.6l2.4-.5L2.1 4l2-2 2.1 1.4.4-2.4h2.8zm.6 7c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zM8 9c.6 0 1-.4 1-1s-.4-1-1-1-1 .4-1 1 .4 1 1 1z" clip-rule="evenodd"/>
+        </svg>
+      </button>
+    </div>
     <div class="subtitle">View and manage your .claude configuration files</div>
     <div class="guide-links">
       <span class="guide-label">Docs:</span>
@@ -42,8 +48,6 @@ export function getHtmlContent(result: ScanResult): string {
     </div>
   </div>
 
-  ${renderStatsBar(stats)}
-
   ${renderTabBar(result)}
 
   <div id="tab-card" class="tab-content active">
@@ -54,8 +58,43 @@ export function getHtmlContent(result: ScanResult): string {
     ${renderTeamView(result)}
   </div>
 
+  <div id="tab-tasks" class="tab-content">
+    ${renderTaskView(result)}
+  </div>
+
+  <div id="tab-sessions" class="tab-content">
+    ${result.insights ? renderSessionExplorer(result.insights, getWorkspacePaths(result)) : '<div class="insights-empty"><div class="insights-empty-title">No Session Data</div></div>'}
+  </div>
+
+  <div id="tab-insights" class="tab-content">
+    ${renderInsightsView(result.insights)}
+  </div>
+
+  <div id="chart-tooltip"></div>
+
   <script>
     const vscode = acquireVsCodeApi();
+
+    // Chart tooltip
+    (function() {
+      const tip = document.getElementById('chart-tooltip');
+      document.addEventListener('mouseover', function(e) {
+        const el = e.target.closest('[data-tooltip]');
+        if (!el) return;
+        tip.textContent = el.getAttribute('data-tooltip');
+        tip.style.display = 'block';
+      });
+      document.addEventListener('mousemove', function(e) {
+        if (tip.style.display === 'block') {
+          tip.style.left = e.pageX + 12 + 'px';
+          tip.style.top = e.pageY - 8 + 'px';
+        }
+      });
+      document.addEventListener('mouseout', function(e) {
+        const el = e.target.closest('[data-tooltip]');
+        if (el) tip.style.display = 'none';
+      });
+    })();
 
     // Open extension settings
     function openSettings() {
@@ -80,6 +119,12 @@ export function getHtmlContent(result: ScanResult): string {
     ${getCardViewScripts()}
 
     ${getTeamViewScripts()}
+
+    ${getTaskViewScripts()}
+
+    ${getInsightsViewScripts()}
+
+    ${getSessionExplorerScripts()}
   </script>
 </body>
 </html>`;
@@ -89,8 +134,8 @@ export function getHtmlContent(result: ScanResult): string {
  * Render the tab bar
  */
 function renderTabBar(result: ScanResult): string {
-  const hasTeamData = result.teamData.teams.length > 0 || result.teamData.tasks.length > 0;
-  const teamBadge = hasTeamData ? `<span class="tab-badge">${result.teamData.teams.length + result.teamData.tasks.length}</span>` : '';
+  const teamBadge = result.teamData.teams.length > 0 ? `<span class="tab-badge">${result.teamData.teams.length}</span>` : '';
+  const taskBadge = result.teamData.tasks.length > 0 ? `<span class="tab-badge">${result.teamData.tasks.length}</span>` : '';
 
   return `
   <div class="tab-bar">
@@ -107,61 +152,31 @@ function renderTabBar(result: ScanResult): string {
       Teams
       ${teamBadge}
     </button>
-  </div>`;
-}
-
-/**
- * Render the stats bar with settings button
- */
-function renderStatsBar(stats: ScanResult['stats']): string {
-  return `
-  <div class="stats-bar-container">
-    <div class="stats-bar">
-      <div class="stat-item">
-        <span class="stat-icon">${SVG_ICONS.target(COLORS.target)}</span>
-        <span class="stat-value">${stats.skills}</span>
-        <span class="stat-label">Skills</span>
-      </div>
-      <div class="stat-item">
-        <span class="stat-icon">${SVG_ICONS.terminal(COLORS.terminal)}</span>
-        <span class="stat-value">${stats.commands}</span>
-        <span class="stat-label">Commands</span>
-      </div>
-      <div class="stat-item">
-        <span class="stat-icon">${SVG_ICONS.robot(COLORS.robot)}</span>
-        <span class="stat-value">${stats.agents}</span>
-        <span class="stat-label">Agents</span>
-      </div>
-      <div class="stat-item">
-        <span class="stat-icon">${SVG_ICONS.bolt(COLORS.bolt)}</span>
-        <span class="stat-value">${stats.hooks}</span>
-        <span class="stat-label">Hooks</span>
-      </div>
-      <div class="stat-item">
-        <span class="stat-icon">${SVG_ICONS.gear(COLORS.gear)}</span>
-        <span class="stat-value">${stats.configs}</span>
-        <span class="stat-label">Configs</span>
-      </div>
-      ${stats.teams > 0 ? `
-      <div class="stat-item">
-        <span class="stat-icon">${SVG_ICONS.team(COLORS.team)}</span>
-        <span class="stat-value">${stats.teams}</span>
-        <span class="stat-label">Teams</span>
-      </div>
-      ` : ''}
-      ${stats.tasks > 0 ? `
-      <div class="stat-item">
-        <span class="stat-icon">${SVG_ICONS.task(COLORS.task)}</span>
-        <span class="stat-value">${stats.tasks}</span>
-        <span class="stat-label">Tasks</span>
-      </div>
-      ` : ''}
-    </div>
-    <button class="settings-btn" onclick="openSettings()" title="Extension Settings">
-      <svg viewBox="0 0 16 16" fill="currentColor">
-        <path fill-rule="evenodd" d="M9.1 4.4L8.6 2H7.4l-.5 2.4-.7.3-2-1.3-.9.8 1.3 2-.2.7-2.4.5v1.2l2.4.5.3.8-1.3 2 .8.8 2-1.3.8.3.4 2.3h1.2l.5-2.4.8-.3 2 1.3.8-.8-1.3-2 .3-.8 2.3-.4V7.4l-2.4-.5-.3-.8 1.3-2-.8-.8-2 1.3-.7-.2zM9.4 1l.5 2.4L12 2.1l2 2-1.4 2.1 2.4.4v2.8l-2.4.5L14 12l-2 2-2.1-1.4-.5 2.4H6.6l-.5-2.4L4 13.9l-2-2 1.4-2.1L1 9.4V6.6l2.4-.5L2.1 4l2-2 2.1 1.4.4-2.4h2.8zm.6 7c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zM8 9c.6 0 1-.4 1-1s-.4-1-1-1-1 .4-1 1 .4 1 1 1z" clip-rule="evenodd"/>
+    <button class="tab-btn" data-tab="tasks">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
       </svg>
+      Tasks
+      ${taskBadge}
+    </button>
+    <button class="tab-btn" data-tab="sessions">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/>
+      </svg>
+      Sessions
+    </button>
+    <button class="tab-btn" data-tab="insights">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+      </svg>
+      Insights (Global)
     </button>
   </div>`;
 }
 
+/**
+ * Extract workspace folder paths from scan result for session filtering
+ */
+function getWorkspacePaths(result: ScanResult): string[] {
+  return result.folders.map(f => f.workspaceFolder.uri.fsPath);
+}

@@ -6,6 +6,7 @@ import * as path from 'path';
 import { ClaudeFolder, ClaudeConfigItem, ScanResult } from '../types';
 import { COLORS } from '../constants/colors';
 import { SVG_ICONS } from '../constants/icons';
+import { FOLDER_CATEGORIES } from '../constants/folderCategories';
 import { getSvgIcon, getSvgFolderIcon } from '../utils/iconUtils';
 import { escapeHtml } from '../utils/escapeHtml';
 
@@ -45,10 +46,9 @@ function getCategoryItems(folder: ClaudeFolder, category: CategoryType): ClaudeC
  * Get root-level config files (CLAUDE.md, settings.json, mcp.json, etc.)
  */
 function getRootFiles(folder: ClaudeFolder): ClaudeConfigItem[] {
-  const categoryFolders = ['skills', 'commands', 'agents'];
   const files = folder.items.filter(
     item => item.type === 'file' ||
-    (item.type === 'folder' && !categoryFolders.includes(item.name.toLowerCase()))
+    (item.type === 'folder' && !FOLDER_CATEGORIES.includes(item.name.toLowerCase() as typeof FOLDER_CATEGORIES[number]))
   );
   // Include mcpConfig if exists
   if (folder.mcpConfig) {

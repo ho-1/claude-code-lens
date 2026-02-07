@@ -15,7 +15,7 @@ export async function scanWorkspace(): Promise<ScanResult> {
   const defaultSettings = { enabled: false, teammateMode: 'auto' as const };
 
   if (!workspaceFolders) {
-    return { folders: [], stats: emptyStats, teamData: emptyTeamData, agentTeamsSettings: defaultSettings };
+    return { folders: [], stats: emptyStats, teamData: emptyTeamData, agentTeamsSettings: defaultSettings, insights: null };
   }
 
   const folders: ClaudeFolder[] = [];
@@ -33,7 +33,7 @@ export async function scanWorkspace(): Promise<ScanResult> {
 
   const stats = calculateStats(folders, teamData);
 
-  return { folders, stats, teamData, agentTeamsSettings };
+  return { folders, stats, teamData, agentTeamsSettings, insights: null };
 }
 
 async function findClaudeFolders(workspaceFolder: vscode.WorkspaceFolder): Promise<ClaudeFolder[]> {
