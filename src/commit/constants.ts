@@ -57,14 +57,13 @@ export type ModelType = (typeof MODELS)[keyof typeof MODELS];
 
 export const DEFAULT_MODEL = MODELS.HAIKU;
 
-export const DEFAULT_COMMIT_PROMPT = `Generate a conventional commit message for the following git diff.
+export const DEFAULT_COMMIT_PROMPT = `Generate a commit message for the following git diff.
 
 Rules:
-- Use format: type(scope): description
+- Follow the style and conventions of the recent commit history shown below
+- If no recent commits are available, use conventional commit format: type(scope): description
 - Types: feat, fix, docs, style, refactor, test, chore
 - Keep first line under 72 characters
 - Be specific and concise
 - Output plain text only, no markdown, no code blocks, no backticks
-
-Diff:
 `;

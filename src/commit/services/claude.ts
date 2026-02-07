@@ -64,10 +64,16 @@ export class ClaudeService {
     model: ModelType = DEFAULT_MODEL,
     customPrompt?: string,
     signal?: AbortSignal,
+    recentCommits?: string,
   ): Promise<string> {
     const claudePath = await this.findCli();
     const basePrompt = customPrompt || DEFAULT_COMMIT_PROMPT;
-    const prompt = basePrompt + diff;
+
+    let prompt = basePrompt;
+    if (recentCommits) {
+      prompt += `\nRecent commits (follow this style):\n${recentCommits}\n`;
+    }
+    prompt += `\nDiff:\n${diff}`;
 
     const args = ['--print', '--model', model, '--output-format', 'text'];
 

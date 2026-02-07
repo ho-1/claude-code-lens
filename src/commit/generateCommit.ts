@@ -143,7 +143,10 @@ export async function generateCommitCommand(
             );
           }
 
-          progress.report({ increment: 30, message: 'Calling Claude...' });
+          progress.report({ increment: 20, message: 'Getting recent commits...' });
+          const recentCommits = await gitService.getRecentCommits(10);
+
+          progress.report({ increment: 20, message: 'Calling Claude...' });
 
           const settings = getCommitSettings();
 
@@ -153,6 +156,7 @@ export async function generateCommitCommand(
               settings.model,
               settings.prompt,
               signal,
+              recentCommits,
             );
 
             if (signal.aborted) {

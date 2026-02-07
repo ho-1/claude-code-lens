@@ -36,4 +36,17 @@ export class GitService {
       throw new Error(`Failed to get unstaged diff: ${message}`);
     }
   }
+
+  async getRecentCommits(count: number = 10): Promise<string> {
+    const safeCount = Math.max(1, Math.min(Math.floor(Math.abs(count)), 50));
+    try {
+      const result = await execAsync(
+        `git log --oneline -${safeCount} --no-merges --format="%s"`,
+        { cwd: this.workspacePath },
+      );
+      return result.stdout.trim();
+    } catch {
+      return '';
+    }
+  }
 }
