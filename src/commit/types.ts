@@ -1,23 +1,23 @@
-import * as vscode from 'vscode';
+import * as vscode from 'vscode'
 
 export interface ClaudeConfig {
-  timeout: number;
+  timeout: number
 }
 
 export interface GitRepository {
-  rootUri: vscode.Uri;
-  inputBox: { value: string };
+  rootUri: vscode.Uri
+  inputBox: { value: string }
 }
 
 export interface GitExtension {
-  getAPI(version: number): GitAPI;
+  getAPI(version: number): GitAPI
 }
 
 export interface GitAPI {
-  repositories: GitRepository[];
+  repositories: GitRepository[]
 }
 
 export interface CommandResult {
-  stdout: string;
-  stderr: string;
+  stdout: string
+  stderr: string
 }

@@ -3,21 +3,22 @@
  * Feature 2: Browsable session list grouped by project
  */
 
-import { InsightsData, SessionEntry } from '../../insightsTypes';
-import { escapeHtml } from '../../utils/escapeHtml';
+import { InsightsData } from '../../insightsTypes'
+import { escapeHtml } from '../../utils/escapeHtml'
 
-const MAX_SESSIONS_INITIAL = 5;
+const MAX_SESSIONS_INITIAL = 5
 
 export function renderSessionExplorer(insights: InsightsData, workspacePaths?: string[]): string {
-  const { sessions } = insights;
+  const { sessions } = insights
 
   // Filter to current workspace project sessions
-  const filtered = workspacePaths && workspacePaths.length > 0
-    ? sessions.filter(s => workspacePaths.some(wp => s.projectPath === wp))
-    : sessions;
+  const filtered =
+    workspacePaths && workspacePaths.length > 0
+      ? sessions.filter((s) => workspacePaths.some((wp) => s.projectPath === wp))
+      : sessions
 
   if (filtered.length === 0) {
-    const projectName = workspacePaths?.[0]?.split('/').pop() || 'this project';
+    const projectName = workspacePaths?.[0]?.split('/').pop() || 'this project'
     return `
     <div class="insights-section-block">
       <div class="insights-section-header">
@@ -27,16 +28,18 @@ export function renderSessionExplorer(insights: InsightsData, workspacePaths?: s
         <span>Session Explorer</span>
       </div>
       <div class="chart-empty">No sessions found for ${escapeHtml(projectName)}</div>
-    </div>`;
+    </div>`
   }
 
-  const totalMessages = filtered.reduce((s, sess) => s + sess.messageCount, 0);
+  const totalMessages = filtered.reduce((s, sess) => s + sess.messageCount, 0)
 
-  const visibleSessions = filtered.slice(0, MAX_SESSIONS_INITIAL).map(s => {
-    const date = formatDate(s.modified || s.created);
-    const prompt = cleanPrompt(s.firstPrompt);
-    const summary = escapeHtml(s.summary || prompt);
-    return `
+  const visibleSessions = filtered
+    .slice(0, MAX_SESSIONS_INITIAL)
+    .map((s) => {
+      const date = formatDate(s.modified || s.created)
+      const prompt = cleanPrompt(s.firstPrompt)
+      const summary = escapeHtml(s.summary || prompt)
+      return `
     <div class="session-item">
       <div class="session-item-header">
         <span class="session-summary">${summary}</span>
@@ -46,19 +49,23 @@ export function renderSessionExplorer(insights: InsightsData, workspacePaths?: s
         <span class="session-date">${date}</span>
         ${s.gitBranch ? `<span class="session-branch">${escapeHtml(s.gitBranch)}</span>` : ''}
       </div>
-    </div>`;
-  }).join('');
+    </div>`
+    })
+    .join('')
 
-  const moreCount = filtered.length - MAX_SESSIONS_INITIAL;
-  const moreButton = moreCount > 0
-    ? `<button class="session-more-btn" data-project="local" data-expanded="false">Show ${moreCount} more</button>`
-    : '';
+  const moreCount = filtered.length - MAX_SESSIONS_INITIAL
+  const moreButton =
+    moreCount > 0
+      ? `<button class="session-more-btn" data-project="local" data-expanded="false">Show ${moreCount} more</button>`
+      : ''
 
-  const hiddenSessions = filtered.slice(MAX_SESSIONS_INITIAL).map(s => {
-    const date = formatDate(s.modified || s.created);
-    const prompt = cleanPrompt(s.firstPrompt);
-    const summary = escapeHtml(s.summary || prompt);
-    return `
+  const hiddenSessions = filtered
+    .slice(MAX_SESSIONS_INITIAL)
+    .map((s) => {
+      const date = formatDate(s.modified || s.created)
+      const prompt = cleanPrompt(s.firstPrompt)
+      const summary = escapeHtml(s.summary || prompt)
+      return `
     <div class="session-item">
       <div class="session-item-header">
         <span class="session-summary">${summary}</span>
@@ -68,8 +75,9 @@ export function renderSessionExplorer(insights: InsightsData, workspacePaths?: s
         <span class="session-date">${date}</span>
         ${s.gitBranch ? `<span class="session-branch">${escapeHtml(s.gitBranch)}</span>` : ''}
       </div>
-    </div>`;
-  }).join('');
+    </div>`
+    })
+    .join('')
 
   return `
   <div class="insights-section-block">
@@ -83,7 +91,7 @@ export function renderSessionExplorer(insights: InsightsData, workspacePaths?: s
     ${visibleSessions}
     ${hiddenSessions ? `<div class="session-hidden" data-hidden="local" style="display:none">${hiddenSessions}</div>` : ''}
     ${moreButton}
-  </div>`;
+  </div>`
 }
 
 export function getSessionExplorerScripts(): string {
@@ -102,27 +110,32 @@ export function getSessionExplorerScripts(): string {
         }
       });
     });
-  `;
+  `
 }
 
 function formatDate(isoStr: string): string {
-  if (!isoStr) return '';
+  if (!isoStr) return ''
   try {
-    const d = new Date(isoStr);
-    return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const d = new Date(isoStr)
+    return (
+      d.toLocaleDateString() +
+      ' ' +
+      d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    )
   } catch {
-    return isoStr;
+    return isoStr
   }
 }
 
 function cleanPrompt(prompt: string): string {
-  if (!prompt || prompt === 'No prompt') return 'No prompt';
+  if (!prompt || prompt === 'No prompt') return 'No prompt'
   // Remove XML command tags
-  return prompt
-    .replace(/<command-message>.*?<\/command-message>/g, '')
-    .replace(/<command-name>.*?<\/command-name>/g, '')
-    .replace(/<command-args>.*?<\/command-args>/g, '')
-    .trim()
-    .slice(0, 100) || 'No prompt';
+  return (
+    prompt
+      .replace(/<command-message>.*?<\/command-message>/g, '')
+      .replace(/<command-name>.*?<\/command-name>/g, '')
+      .replace(/<command-args>.*?<\/command-args>/g, '')
+      .trim()
+      .slice(0, 100) || 'No prompt'
+  )
 }
-

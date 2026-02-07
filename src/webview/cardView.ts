@@ -1,35 +1,35 @@
 /**
- * Card view rendering for the dashboard - Project-based list view
+ * Card view rendering for the dashboard - Clean card grid layout
  */
 
-import * as path from 'path';
-import { ClaudeFolder, ClaudeConfigItem, ScanResult } from '../types';
-import { COLORS } from '../constants/colors';
-import { SVG_ICONS } from '../constants/icons';
-import { FOLDER_CATEGORIES } from '../constants/folderCategories';
-import { getSvgIcon, getSvgFolderIcon } from '../utils/iconUtils';
-import { escapeHtml } from '../utils/escapeHtml';
+import * as path from 'path'
+import { ClaudeFolder, ClaudeConfigItem, ScanResult } from '../types'
+import { COLORS } from '../constants/colors'
+import { SVG_ICONS } from '../constants/icons'
+import { FOLDER_CATEGORIES } from '../constants/folderCategories'
+import { getSvgIcon, getSvgFolderIcon } from '../utils/iconUtils'
+import { escapeHtml } from '../utils/escapeHtml'
 
-// Category accent colors
-const CATEGORY_COLORS = {
-  skills: '#EF4444',    // red
-  commands: '#3B82F6',  // blue
-  agents: '#8B5CF6',    // purple
-} as const;
+// Category icon/color/accent mapping
+const CATEGORY_MAP = {
+  skills: { icon: () => SVG_ICONS.sparkle('#EF4444'), label: 'Skills', accent: '#EF4444' },
+  commands: { icon: () => SVG_ICONS.terminal('#3B82F6'), label: 'Commands', accent: '#3B82F6' },
+  agents: { icon: () => SVG_ICONS.robot('#8B5CF6'), label: 'Agents', accent: '#8B5CF6' },
+} as const
 
-type CategoryType = keyof typeof CATEGORY_COLORS;
+type CategoryType = keyof typeof CATEGORY_MAP
 
 /**
- * Render the card view content - project-based layout
+ * Render the card view content - project-based card grid layout
  */
 export function renderCardView(result: ScanResult): string {
-  const { folders } = result;
+  const { folders } = result
 
   if (folders.length === 0) {
-    return renderEmptyState();
+    return renderEmptyState()
   }
 
-  return folders.map((f, i) => renderProjectCard(f, i)).join('');
+  return folders.map((f) => renderProjectSection(f)).join('')
 }
 
 /**
@@ -37,151 +37,158 @@ export function renderCardView(result: ScanResult): string {
  */
 function getCategoryItems(folder: ClaudeFolder, category: CategoryType): ClaudeConfigItem[] {
   const categoryFolder = folder.items.find(
-    item => item.type === 'folder' && item.name.toLowerCase() === category
-  );
-  return categoryFolder?.children || [];
+    (item) => item.type === 'folder' && item.name.toLowerCase() === category,
+  )
+  return categoryFolder?.children || []
 }
 
 /**
- * Get root-level config files (CLAUDE.md, settings.json, mcp.json, etc.)
+ * Get root-level config files
  */
 function getRootFiles(folder: ClaudeFolder): ClaudeConfigItem[] {
   const files = folder.items.filter(
-    item => item.type === 'file' ||
-    (item.type === 'folder' && !FOLDER_CATEGORIES.includes(item.name.toLowerCase() as typeof FOLDER_CATEGORIES[number]))
-  );
-  // Include mcpConfig if exists
+    (item) =>
+      item.type === 'file' ||
+      (item.type === 'folder' &&
+        !FOLDER_CATEGORIES.includes(item.name.toLowerCase() as (typeof FOLDER_CATEGORIES)[number])),
+  )
   if (folder.mcpConfig) {
-    files.push(folder.mcpConfig);
+    files.push(folder.mcpConfig)
   }
-  return files;
+  return files
 }
 
 /**
  * Get display path for a folder
  */
 function getDisplayPath(folder: ClaudeFolder): string {
-  const relativePath = path.relative(
-    folder.workspaceFolder.uri.fsPath,
-    folder.claudePath.fsPath
-  );
-  const isRoot = !relativePath || relativePath === '.claude';
+  const relativePath = path.relative(folder.workspaceFolder.uri.fsPath, folder.claudePath.fsPath)
+  const isRoot = !relativePath || relativePath === '.claude'
 
-  // For root .claude, show the project folder name
   if (isRoot) {
-    return folder.workspaceFolder.name;
+    return folder.workspaceFolder.name
   }
 
-  // For nested .claude, show project name + path
-  const subPath = relativePath.replace(/\/?\.claude$/, '');
-  return `${folder.workspaceFolder.name}/${subPath}`;
+  const subPath = relativePath.replace(/\/?\.claude$/, '')
+  return `${folder.workspaceFolder.name}/${subPath}`
 }
 
 /**
- * Render a project card
+ * Render a project section with header + card grid
  */
-function renderProjectCard(folder: ClaudeFolder, index: number): string {
-  const displayPath = getDisplayPath(folder);
-  const folderIcon = SVG_ICONS.folder(COLORS.folder);
+function renderProjectSection(folder: ClaudeFolder): string {
+  const displayPath = getDisplayPath(folder)
+  const folderIcon = SVG_ICONS.folder(COLORS.folder)
 
-  const rootFiles = getRootFiles(folder);
-  const skillItems = getCategoryItems(folder, 'skills');
-  const commandItems = getCategoryItems(folder, 'commands');
-  const agentItems = getCategoryItems(folder, 'agents');
+  const rootFiles = getRootFiles(folder)
+  const skillItems = getCategoryItems(folder, 'skills')
+  const commandItems = getCategoryItems(folder, 'commands')
+  const agentItems = getCategoryItems(folder, 'agents')
+
+  const totalItems = rootFiles.length + skillItems.length + commandItems.length + agentItems.length
+
+  const cards: string[] = []
+
+  // Always show all cards, even when empty
+  cards.push(renderConfigCard(rootFiles))
+  cards.push(renderCategoryCard('skills', skillItems))
+  cards.push(renderCategoryCard('commands', commandItems))
+  cards.push(renderCategoryCard('agents', agentItems))
 
   return `
-  <div class="project-card" data-project="${index}">
-    <div class="project-header">
-      <span class="project-chevron">▶</span>
-      <span class="project-icon">${folderIcon}</span>
-      <span class="project-title">${escapeHtml(displayPath)}</span>
+  <div class="project-section">
+    <div class="project-section-header">
+      <span class="project-section-icon">${folderIcon}</span>
+      <span class="project-section-title">${escapeHtml(displayPath)}</span>
+      <span class="project-section-count">${totalItems}</span>
     </div>
-    <div class="project-content">
-      ${renderRootFiles(rootFiles)}
-      ${renderCategorySection('skills', skillItems)}
-      ${renderCategorySection('commands', commandItems)}
-      ${renderCategorySection('agents', agentItems)}
+    <div class="project-cards">
+      ${cards.join('')}
     </div>
-  </div>`;
+  </div>`
 }
 
 /**
- * Render root-level config files
+ * Render Config card for root files
  */
-function renderRootFiles(items: ClaudeConfigItem[]): string {
-  if (items.length === 0) return '';
-
+function renderConfigCard(items: ClaudeConfigItem[]): string {
   return `
-  <div class="root-files">
-    ${items.map(item => renderRootFileItem(item)).join('')}
-  </div>`;
+  <div class="project-card config-card">
+    <div class="config-card-body">
+      ${
+        items.length > 0
+          ? items.map((item) => renderConfigItem(item)).join('')
+          : '<div class="card-empty">No config files</div>'
+      }
+    </div>
+  </div>`
 }
 
 /**
- * Render a root file item (CLAUDE.md, settings.json, etc.)
+ * Render a category card (Skills, Commands, Agents)
  */
-function renderRootFileItem(item: ClaudeConfigItem): string {
-  const icon = item.type === 'folder'
-    ? getSvgFolderIcon(item.name, false)
-    : getSvgIcon(item.name);
-  const displayName = item.name;
+function renderCategoryCard(category: CategoryType, items: ClaudeConfigItem[]): string {
+  const { icon, label, accent } = CATEGORY_MAP[category]
 
   return `
-  <div class="root-file-item" data-path="${escapeHtml(item.uri.fsPath)}">
-    <span class="root-file-icon">${icon}</span>
-    <span class="root-file-name">${escapeHtml(displayName)}</span>
-  </div>`;
+  <div class="project-card" style="border-top: 3px solid ${accent}">
+    <div class="project-card-header">
+      <div class="project-card-title">
+        ${icon()}
+        <span>${label}</span>
+      </div>
+      <span class="project-card-badge">${items.length}</span>
+    </div>
+    <div class="project-card-body">
+      ${
+        items.length > 0
+          ? items.map((item) => renderCategoryItem(item, category)).join('')
+          : `<div class="card-empty">No ${label.toLowerCase()} yet</div>`
+      }
+    </div>
+  </div>`
 }
 
 /**
- * Render a category section (Skills, Commands, Agents)
+ * Render a config item (root file)
  */
-function renderCategorySection(category: CategoryType, items: ClaudeConfigItem[]): string {
-  if (items.length === 0) return '';
-
-  const accentColor = CATEGORY_COLORS[category];
-  const displayName = category.charAt(0).toUpperCase() + category.slice(1);
+function renderConfigItem(item: ClaudeConfigItem): string {
+  const icon = item.type === 'folder' ? getSvgFolderIcon(item.name, false) : getSvgIcon(item.name)
 
   return `
-  <div class="category-section" data-category="${category}" style="--accent-color: ${accentColor}">
-    <div class="category-header">
-      <span class="category-chevron">▶</span>
-      <span class="category-name">${displayName}</span>
-      <span class="category-count">${items.length}</span>
-    </div>
-    <div class="category-items">
-      ${items.map(item => renderCategoryItem(item, category)).join('')}
-    </div>
-  </div>`;
+  <div class="config-pill" data-path="${escapeHtml(item.uri.fsPath)}">
+    <span class="config-item-icon">${icon}</span>
+    <span class="config-item-name">${escapeHtml(item.name)}</span>
+  </div>`
 }
 
 /**
  * Render a category item (skill/command/agent)
  */
 function renderCategoryItem(item: ClaudeConfigItem, category: CategoryType): string {
-  const isExpandable = item.type === 'folder' && item.children && item.children.length > 0;
-  const displayName = item.type === 'folder' ? item.name : item.name.replace(/\.md$/i, '');
-  const frontmatter = item.parsed?.frontmatter || {};
-  const description = frontmatter.description || item.parsed?.preview || '';
-  const icon = item.type === 'folder'
-    ? getSvgFolderIcon(item.name, true)
-    : getSvgIcon(item.name, category);
+  const displayName = item.type === 'folder' ? item.name : item.name.replace(/\.md$/i, '')
+  const frontmatter = item.parsed?.frontmatter || {}
+  const description = frontmatter.description || item.parsed?.preview || ''
+  const icon =
+    item.type === 'folder' ? getSvgFolderIcon(item.name, true) : getSvgIcon(item.name, category)
 
-  // Copy text: always with / prefix
-  const copyText = `/${displayName}`;
-  const copyIcon = SVG_ICONS.clipboard('currentColor');
+  const copyText = `/${displayName}`
+  const copyIcon = SVG_ICONS.clipboard('currentColor')
+
+  const children =
+    item.type === 'folder' && item.children && item.children.length > 0 ? item.children : []
+
+  const isExpandable = children.length > 0
 
   return `
-  <div class="category-item ${isExpandable ? 'expandable' : ''}"
-       data-path="${escapeHtml(item.uri.fsPath)}"
-       data-expandable="${isExpandable}">
-    <div class="item-main">
-      <div class="item-header">
-        ${isExpandable ? '<span class="item-chevron collapsed">▶</span>' : ''}
-        <span class="item-icon">${icon}</span>
-        <span class="item-name">${escapeHtml(displayName)}</span>
-        ${item.type === 'folder' ? `<span class="item-badge">${item.children?.length || 0} files</span>` : ''}
-        <div class="item-actions">
+  <div class="config-item ${isExpandable ? 'expandable' : ''}" data-path="${escapeHtml(item.uri.fsPath)}">
+    ${isExpandable ? '<span class="config-item-chevron collapsed">▶</span>' : ''}
+    <span class="config-item-icon">${icon}</span>
+    <div class="config-item-content">
+      <div class="config-item-row">
+        <span class="config-item-name">${escapeHtml(displayName)}</span>
+        ${isExpandable ? `<span class="config-item-badge">${children.length} files</span>` : ''}
+        <div class="config-item-actions">
           <button class="action-btn copy-btn"
                   data-copy-text="${escapeHtml(copyText)}"
                   title="Copy name">
@@ -189,29 +196,24 @@ function renderCategoryItem(item: ClaudeConfigItem, category: CategoryType): str
           </button>
         </div>
       </div>
-      ${description ? `<div class="item-description">${escapeHtml(description)}</div>` : ''}
+      ${description ? `<div class="config-item-desc">${escapeHtml(description)}</div>` : ''}
     </div>
-    ${isExpandable ? renderExpandedContent(item.children!) : ''}
-  </div>`;
+  </div>
+  ${isExpandable ? `<div class="config-subitems collapsed">${children.map((child) => renderSubitem(child)).join('')}</div>` : ''}`
 }
 
 /**
- * Render expanded content (subfiles)
+ * Render a subitem (child of folder item)
  */
-function renderExpandedContent(children: ClaudeConfigItem[]): string {
+function renderSubitem(child: ClaudeConfigItem): string {
+  const icon =
+    child.type === 'folder' ? getSvgFolderIcon(child.name, false) : getSvgIcon(child.name)
+
   return `
-  <div class="item-expanded collapsed">
-    ${children.map(child => {
-      const icon = child.type === 'folder'
-        ? getSvgFolderIcon(child.name, false)
-        : getSvgIcon(child.name);
-      return `
-      <div class="subfile" data-path="${escapeHtml(child.uri.fsPath)}">
-        <span class="subfile-icon">${icon}</span>
-        <span class="subfile-name">${escapeHtml(child.name)}</span>
-      </div>`;
-    }).join('')}
-  </div>`;
+  <div class="config-subitem" data-path="${escapeHtml(child.uri.fsPath)}">
+    <span class="config-item-icon">${icon}</span>
+    <span class="config-item-name">${escapeHtml(child.name)}</span>
+  </div>`
 }
 
 /**
@@ -220,10 +222,10 @@ function renderExpandedContent(children: ClaudeConfigItem[]): string {
 function renderEmptyState(): string {
   return `
   <div class="empty-state">
-    <div class="empty-icon">📭</div>
+    <div class="empty-icon">${SVG_ICONS.folder('#6B7280')}</div>
     <div class="empty-title">No .claude folders found</div>
     <div class="empty-message">Create a .claude folder with config files to get started</div>
-  </div>`;
+  </div>`
 }
 
 /**
@@ -231,8 +233,8 @@ function renderEmptyState(): string {
  */
 export function getCardViewScripts(): string {
   return `
-    // Root file item click - opens file
-    document.querySelectorAll('.root-file-item').forEach(item => {
+    // Config pill click - opens file
+    document.querySelectorAll('.config-pill[data-path]').forEach(item => {
       item.addEventListener('click', () => {
         vscode.postMessage({
           type: 'openFile',
@@ -241,10 +243,9 @@ export function getCardViewScripts(): string {
       });
     });
 
-    // Category item click - opens file if not expandable
-    document.querySelectorAll('.category-item:not(.expandable)').forEach(item => {
+    // Category item click - opens file (non-expandable only)
+    document.querySelectorAll('.config-item[data-path]:not(.expandable)').forEach(item => {
       item.addEventListener('click', (e) => {
-        // Ignore if clicking on action button
         if (e.target.closest('.action-btn')) return;
         vscode.postMessage({
           type: 'openFile',
@@ -253,8 +254,31 @@ export function getCardViewScripts(): string {
       });
     });
 
-    // Action button: Copy name
-    document.querySelectorAll('.action-btn.copy-btn').forEach(btn => {
+    // Expandable item click - toggle children
+    document.querySelectorAll('.config-item.expandable').forEach(item => {
+      item.addEventListener('click', (e) => {
+        if (e.target.closest('.action-btn')) return;
+        const chevron = item.querySelector('.config-item-chevron');
+        const subitems = item.nextElementSibling;
+        if (subitems && subitems.classList.contains('config-subitems')) {
+          subitems.classList.toggle('collapsed');
+          chevron.classList.toggle('collapsed');
+        }
+      });
+    });
+
+    // Subitem click - opens file
+    document.querySelectorAll('.config-subitem[data-path]').forEach(item => {
+      item.addEventListener('click', () => {
+        vscode.postMessage({
+          type: 'openFile',
+          path: item.dataset.path
+        });
+      });
+    });
+
+    // Copy button
+    document.querySelectorAll('.config-item-actions .copy-btn').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         e.stopPropagation();
         const copyText = btn.dataset.copyText;
@@ -269,52 +293,5 @@ export function getCardViewScripts(): string {
         }
       });
     });
-
-    // Expandable item - click on main area to toggle
-    document.querySelectorAll('.category-item.expandable .item-main').forEach(main => {
-      main.addEventListener('click', () => {
-        const item = main.closest('.category-item');
-        const expanded = item.querySelector('.item-expanded');
-        const chevron = main.querySelector('.item-chevron');
-
-        expanded.classList.toggle('collapsed');
-        chevron.classList.toggle('collapsed');
-      });
-    });
-
-    // Subfile click handler
-    document.querySelectorAll('.subfile').forEach(subfile => {
-      subfile.addEventListener('click', (e) => {
-        e.stopPropagation();
-        vscode.postMessage({
-          type: 'openFile',
-          path: subfile.dataset.path
-        });
-      });
-    });
-
-    // Category header toggle
-    document.querySelectorAll('.category-header').forEach(header => {
-      header.addEventListener('click', () => {
-        const section = header.closest('.category-section');
-        const items = section.querySelector('.category-items');
-        const chevron = header.querySelector('.category-chevron');
-
-        items.classList.toggle('collapsed');
-        chevron.classList.toggle('collapsed');
-      });
-    });
-
-    // Project header toggle
-    document.querySelectorAll('.project-header').forEach(header => {
-      header.addEventListener('click', () => {
-        const card = header.closest('.project-card');
-        const content = card.querySelector('.project-content');
-        const chevron = header.querySelector('.project-chevron');
-
-        content.classList.toggle('collapsed');
-        chevron.classList.toggle('collapsed');
-      });
-    });
-  `;
+  `
 }

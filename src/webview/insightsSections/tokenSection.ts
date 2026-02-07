@@ -3,67 +3,67 @@
  * Feature 5: Model distribution + daily token chart + cache efficiency
  */
 
-import { InsightsData } from '../../insightsTypes';
-import { renderDonutChartSvg } from '../charts/donutChart';
-import { renderLineChartSvg } from '../charts/lineChart';
+import { InsightsData } from '../../insightsTypes'
+import { renderDonutChartSvg } from '../charts/donutChart'
+import { renderLineChartSvg } from '../charts/lineChart'
 
 const MODEL_COLORS: Record<string, string> = {
-  'opus': '#8B5CF6',
-  'sonnet': '#3B82F6',
-  'haiku': '#10B981',
-  'default': '#6B7280',
-};
+  opus: '#8B5CF6',
+  sonnet: '#3B82F6',
+  haiku: '#10B981',
+  default: '#6B7280',
+}
 
 function getModelColor(modelId: string): string {
-  if (modelId.includes('opus')) return MODEL_COLORS.opus;
-  if (modelId.includes('sonnet')) return MODEL_COLORS.sonnet;
-  if (modelId.includes('haiku')) return MODEL_COLORS.haiku;
-  return MODEL_COLORS.default;
+  if (modelId.includes('opus')) return MODEL_COLORS.opus
+  if (modelId.includes('sonnet')) return MODEL_COLORS.sonnet
+  if (modelId.includes('haiku')) return MODEL_COLORS.haiku
+  return MODEL_COLORS.default
 }
 
 function shortModelName(modelId: string): string {
-  if (modelId.includes('opus-4-6')) return 'Opus 4.6';
-  if (modelId.includes('opus-4-5')) return 'Opus 4.5';
-  if (modelId.includes('sonnet-4-5')) return 'Sonnet 4.5';
-  if (modelId.includes('haiku-4-5')) return 'Haiku 4.5';
-  if (modelId.includes('opus')) return 'Opus';
-  if (modelId.includes('sonnet')) return 'Sonnet';
-  if (modelId.includes('haiku')) return 'Haiku';
-  return modelId.split('-').slice(1, 3).join(' ');
+  if (modelId.includes('opus-4-6')) return 'Opus 4.6'
+  if (modelId.includes('opus-4-5')) return 'Opus 4.5'
+  if (modelId.includes('sonnet-4-5')) return 'Sonnet 4.5'
+  if (modelId.includes('haiku-4-5')) return 'Haiku 4.5'
+  if (modelId.includes('opus')) return 'Opus'
+  if (modelId.includes('sonnet')) return 'Sonnet'
+  if (modelId.includes('haiku')) return 'Haiku'
+  return modelId.split('-').slice(1, 3).join(' ')
 }
 
 function formatTokens(n: number): string {
-  if (n >= 1_000_000_000) return (n / 1_000_000_000).toFixed(1) + 'B';
-  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M';
-  if (n >= 1_000) return (n / 1_000).toFixed(1) + 'K';
-  return n.toString();
+  if (n >= 1_000_000_000) return (n / 1_000_000_000).toFixed(1) + 'B'
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M'
+  if (n >= 1_000) return (n / 1_000).toFixed(1) + 'K'
+  return n.toString()
 }
 
 export function renderTokenSection(insights: InsightsData): string {
-  const stats = insights.statsCache;
-  if (!stats) return '';
+  const stats = insights.statsCache
+  if (!stats) return ''
 
-  const { modelUsage, dailyModelTokens } = stats;
-  const models = Object.keys(modelUsage);
+  const { modelUsage, dailyModelTokens } = stats
+  const models = Object.keys(modelUsage)
 
-  if (models.length === 0) return '';
+  if (models.length === 0) return ''
 
   // Calculate totals
-  let totalInput = 0;
-  let totalOutput = 0;
-  let totalCacheRead = 0;
-  let totalCacheCreation = 0;
+  let totalInput = 0
+  let totalOutput = 0
+  let totalCacheRead = 0
+  let totalCacheCreation = 0
 
   for (const model of models) {
-    const usage = modelUsage[model];
-    totalInput += usage.inputTokens;
-    totalOutput += usage.outputTokens;
-    totalCacheRead += usage.cacheReadInputTokens;
-    totalCacheCreation += usage.cacheCreationInputTokens;
+    const usage = modelUsage[model]
+    totalInput += usage.inputTokens
+    totalOutput += usage.outputTokens
+    totalCacheRead += usage.cacheReadInputTokens
+    totalCacheCreation += usage.cacheCreationInputTokens
   }
 
-  const totalAll = totalInput + totalOutput + totalCacheRead + totalCacheCreation;
-  const cacheHitRatio = totalAll > 0 ? Math.round((totalCacheRead / totalAll) * 100) : 0;
+  const totalAll = totalInput + totalOutput + totalCacheRead + totalCacheCreation
+  const cacheHitRatio = totalAll > 0 ? Math.round((totalCacheRead / totalAll) * 100) : 0
 
   // KPI cards
   const kpiCards = `
@@ -84,21 +84,23 @@ export function renderTokenSection(insights: InsightsData): string {
       <div class="kpi-value">${models.length}</div>
       <div class="kpi-label">Models Used</div>
     </div>
-  </div>`;
+  </div>`
 
   // Model usage donut
-  const modelSegments = models.map(m => ({
-    label: shortModelName(m),
-    value: modelUsage[m].inputTokens + modelUsage[m].outputTokens,
-    color: getModelColor(m),
-  })).filter(s => s.value > 0);
+  const modelSegments = models
+    .map((m) => ({
+      label: shortModelName(m),
+      value: modelUsage[m].inputTokens + modelUsage[m].outputTokens,
+      color: getModelColor(m),
+    }))
+    .filter((s) => s.value > 0)
 
   const modelDonut = renderDonutChartSvg({
     segments: modelSegments,
     size: 180,
     centerValue: formatTokens(totalInput + totalOutput),
     centerLabel: 'Direct Tokens',
-  });
+  })
 
   // Cache donut
   const cacheDonut = renderDonutChartSvg({
@@ -111,33 +113,31 @@ export function renderTokenSection(insights: InsightsData): string {
     size: 180,
     centerValue: `${cacheHitRatio}%`,
     centerLabel: 'Cache Hit',
-  });
+  })
 
   // Daily token line chart
-  const seriesMap = new Map<string, { x: string; y: number }[]>();
+  const seriesMap = new Map<string, { x: string; y: number }[]>()
   for (const day of dailyModelTokens) {
     for (const [model, tokens] of Object.entries(day.tokensByModel)) {
-      const name = shortModelName(model);
-      if (!seriesMap.has(name)) seriesMap.set(name, []);
-      seriesMap.get(name)!.push({ x: day.date, y: tokens });
+      const name = shortModelName(model)
+      if (!seriesMap.has(name)) seriesMap.set(name, [])
+      seriesMap.get(name)!.push({ x: day.date, y: tokens })
     }
   }
 
   const lineSeries = Array.from(seriesMap.entries()).map(([label, data]) => ({
     label,
     data,
-    color: getModelColor(
-      models.find(m => shortModelName(m) === label) || ''
-    ),
+    color: getModelColor(models.find((m) => shortModelName(m) === label) || ''),
     fill: true,
-  }));
+  }))
 
   const lineChart = renderLineChartSvg({
     series: lineSeries,
     width: 500,
     height: 200,
     showLegend: true,
-  });
+  })
 
   return `
   <div class="insights-section-block">
@@ -162,5 +162,5 @@ export function renderTokenSection(insights: InsightsData): string {
       <div class="chart-subtitle">Daily Token Usage by Model</div>
       ${lineChart}
     </div>
-  </div>`;
+  </div>`
 }

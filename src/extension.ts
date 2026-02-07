@@ -1,313 +1,378 @@
-import * as vscode from 'vscode';
-import * as path from 'path';
-import * as os from 'os';
-import * as fs from 'fs';
-import { ClaudeTreeProvider, TreeItem } from './claudeTreeProvider';
-import { StatsViewProvider } from './statsViewProvider';
-import { createDashboardPanel, updateDashboardPanel, disposeDashboardPanel } from './webview';
-import { scanWorkspace } from './claudeScanner';
-import { generateCommitCommand, stopGeneration } from './commit';
-import { scanInsights, invalidateInsightsCache } from './insightsScanner';
-import { createProductivityPulse, updateProductivityPulse } from './productivityPulse';
+import * as fs from 'fs'
+import * as os from 'os'
+import * as path from 'path'
+import * as vscode from 'vscode'
+import { scanWorkspace } from './claudeScanner'
+import { ClaudeTreeProvider, TreeItem } from './claudeTreeProvider'
+import { generateCommitCommand, stopGeneration } from './commit'
+import { invalidateLiveCache, invalidateStatsCache, scanInsights } from './insightsScanner'
+import { createProductivityPulse, updateProductivityPulse } from './productivityPulse'
+import { StatsViewProvider } from './statsViewProvider'
+import { createDashboardPanel, disposeDashboardPanel, updateDashboardPanel } from './webview'
 
-let fileWatcher: vscode.FileSystemWatcher | undefined;
-let mcpWatcher: vscode.FileSystemWatcher | undefined;
-let teamWatcher: fs.FSWatcher | undefined;
-let taskWatcher: fs.FSWatcher | undefined;
-let insightsWatcher: fs.FSWatcher | undefined;
-let treeProvider: ClaudeTreeProvider;
-let statsProvider: StatsViewProvider;
-let treeView: vscode.TreeView<TreeItem>;
+let fileWatcher: vscode.FileSystemWatcher | undefined
+let mcpWatcher: vscode.FileSystemWatcher | undefined
+let teamWatcher: fs.FSWatcher | undefined
+let taskWatcher: fs.FSWatcher | undefined
+let insightsWatcher: fs.FSWatcher | undefined
+let historyWatcher: fs.FSWatcher | undefined
+let treeProvider: ClaudeTreeProvider
+let statsProvider: StatsViewProvider
+let treeView: vscode.TreeView<TreeItem>
 
 export function activate(context: vscode.ExtensionContext) {
-  console.log('Claude Code Lens is now active');
+  // Extension activated
 
   // Initialize commit generation state
-  vscode.commands.executeCommand('setContext', 'claudeLens.isGenerating', false);
+  vscode.commands.executeCommand('setContext', 'claudeLens.isGenerating', false)
 
   // Register commit commands
   const commitCommand = vscode.commands.registerCommand(
     'claudeLens.generateCommit',
-    generateCommitCommand
-  );
+    generateCommitCommand,
+  )
 
-  const stopCommitCommand = vscode.commands.registerCommand(
-    'claudeLens.stopCommit',
-    stopGeneration
-  );
+  const stopCommitCommand = vscode.commands.registerCommand('claudeLens.stopCommit', stopGeneration)
 
   // Create providers
-  treeProvider = new ClaudeTreeProvider();
-  statsProvider = new StatsViewProvider(context.extensionUri);
+  treeProvider = new ClaudeTreeProvider()
+  statsProvider = new StatsViewProvider(context.extensionUri)
 
   // Create TreeView with reveal API and multi-select
   treeView = vscode.window.createTreeView('claudeLensView', {
     treeDataProvider: treeProvider,
     showCollapseAll: true,
     canSelectMany: true,
-  });
+  })
 
   // Register StatsViewProvider (Webview in sidebar)
   const statsRegistration = vscode.window.registerWebviewViewProvider(
     StatsViewProvider.viewType,
-    statsProvider
-  );
+    statsProvider,
+  )
 
   // Initial refresh
-  refreshAll();
+  refreshAll()
 
   // Register commands
-  const refreshCommand = vscode.commands.registerCommand('claudeLens.refresh', refreshAll);
+  const refreshCommand = vscode.commands.registerCommand('claudeLens.refresh', refreshAll)
 
   const openFileCommand = vscode.commands.registerCommand(
     'claudeLens.openFile',
     async (uri: vscode.Uri) => {
       if (uri) {
-        const doc = await vscode.workspace.openTextDocument(uri);
-        await vscode.window.showTextDocument(doc);
+        try {
+          const doc = await vscode.workspace.openTextDocument(uri)
+          await vscode.window.showTextDocument(doc)
+        } catch {
+          vscode.window.showErrorMessage('Failed to open file')
+        }
       }
-    }
-  );
+    },
+  )
 
   const openDashboardCommand = vscode.commands.registerCommand(
     'claudeLens.openDashboard',
     async () => {
-      let scanResult = treeProvider.getScanResult();
+      let scanResult = treeProvider.getScanResult()
       if (!scanResult) {
-        scanResult = await scanWorkspace();
+        scanResult = await scanWorkspace()
       }
       // Ensure insights data is loaded
       if (!scanResult.insights) {
-        scanResult.insights = await scanInsights();
+        scanResult.insights = await scanInsights()
       }
-      createDashboardPanel(context.extensionUri, scanResult);
-    }
-  );
+      createDashboardPanel(context.extensionUri, scanResult)
+    },
+  )
 
   // New File command
   const newFileCommand = vscode.commands.registerCommand(
     'claudeLens.newFile',
     async (item: TreeItem) => {
-      const targetPath = getTargetPath(item);
-      if (!targetPath) return;
+      const targetPath = getTargetPath(item)
+      if (!targetPath) return
 
       const fileName = await vscode.window.showInputBox({
         prompt: 'Enter file name',
         placeHolder: 'filename.md',
         validateInput: (value) => {
           if (!value || value.trim().length === 0) {
-            return 'File name is required';
+            return 'File name is required'
           }
-          if (!/^[a-zA-Z0-9_\-\.]+$/.test(value)) {
-            return 'File name can only contain letters, numbers, hyphens, underscores, and dots';
+          if (!/^[a-zA-Z0-9_\-.]+$/.test(value)) {
+            return 'File name can only contain letters, numbers, hyphens, underscores, and dots'
           }
           // Prevent path traversal (allow dotfiles like .gitignore)
           if (value === '.' || value === '..' || value.includes('..')) {
-            return 'Invalid file name';
+            return 'Invalid file name'
           }
-          return null;
-        }
-      });
-      if (!fileName) return;
+          return null
+        },
+      })
+      if (!fileName) return
 
-      const filePath = path.join(targetPath, fileName);
-      const template = fileName.endsWith('.md') ? getMarkdownTemplate(fileName) : '';
-      await vscode.workspace.fs.writeFile(
-        vscode.Uri.file(filePath),
-        Buffer.from(template, 'utf8')
-      );
-      const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(filePath));
-      await vscode.window.showTextDocument(doc);
-    }
-  );
+      const filePath = path.join(targetPath, fileName)
+      const template = fileName.endsWith('.md') ? getMarkdownTemplate(fileName) : ''
+      try {
+        await vscode.workspace.fs.writeFile(
+          vscode.Uri.file(filePath),
+          Buffer.from(template, 'utf8'),
+        )
+        const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(filePath))
+        await vscode.window.showTextDocument(doc)
+      } catch {
+        vscode.window.showErrorMessage(`Failed to create file: ${fileName}`)
+      }
+    },
+  )
 
   // New Folder command
   const newFolderCommand = vscode.commands.registerCommand(
     'claudeLens.newFolder',
     async (item: TreeItem) => {
-      const targetPath = getTargetPath(item);
-      if (!targetPath) return;
+      const targetPath = getTargetPath(item)
+      if (!targetPath) return
 
       const folderName = await vscode.window.showInputBox({
         prompt: 'Enter folder name',
         placeHolder: 'folder-name',
         validateInput: (value) => {
           if (!value || value.trim().length === 0) {
-            return 'Folder name is required';
+            return 'Folder name is required'
           }
-          if (!/^[a-zA-Z0-9_\-]+$/.test(value)) {
-            return 'Folder name can only contain letters, numbers, hyphens, and underscores';
+          if (!/^[a-zA-Z0-9_-]+$/.test(value)) {
+            return 'Folder name can only contain letters, numbers, hyphens, and underscores'
           }
           // Prevent path traversal
           if (value === '.' || value === '..') {
-            return 'Invalid folder name';
+            return 'Invalid folder name'
           }
-          return null;
-        }
-      });
-      if (!folderName) return;
+          return null
+        },
+      })
+      if (!folderName) return
 
-      const folderPath = path.join(targetPath, folderName);
-      await vscode.workspace.fs.createDirectory(vscode.Uri.file(folderPath));
-    }
-  );
+      const folderPath = path.join(targetPath, folderName)
+      try {
+        await vscode.workspace.fs.createDirectory(vscode.Uri.file(folderPath))
+      } catch {
+        vscode.window.showErrorMessage(`Failed to create folder: ${folderName}`)
+      }
+    },
+  )
 
   // Delete command
   const deleteCommand = vscode.commands.registerCommand(
     'claudeLens.delete',
     async (item: TreeItem) => {
-      const items = treeView.selection.length > 1 ? treeView.selection : [item];
+      const items = treeView.selection.length > 1 ? treeView.selection : [item]
 
       // Validate all items are within .claude folders
       for (const i of items) {
-        if (!i.configItem?.uri) continue;
-        const itemPath = i.configItem.uri.fsPath;
-        const normalizedPath = path.normalize(itemPath);
+        if (!i.configItem?.uri) continue
+        const itemPath = i.configItem.uri.fsPath
+        const normalizedPath = path.normalize(itemPath)
 
         // Must contain .claude in the path
-        if (!normalizedPath.includes(`${path.sep}.claude${path.sep}`) &&
-            !normalizedPath.endsWith(`${path.sep}.claude`)) {
-          vscode.window.showErrorMessage('Cannot delete files outside .claude folders');
-          return;
+        if (
+          !normalizedPath.includes(`${path.sep}.claude${path.sep}`) &&
+          !normalizedPath.endsWith(`${path.sep}.claude`)
+        ) {
+          vscode.window.showErrorMessage('Cannot delete files outside .claude folders')
+          return
         }
 
         // Prevent deleting .claude folder itself
-        if (normalizedPath.endsWith(`${path.sep}.claude`) ||
-            path.basename(normalizedPath) === '.claude') {
-          vscode.window.showErrorMessage('Cannot delete the .claude folder itself');
-          return;
+        if (
+          normalizedPath.endsWith(`${path.sep}.claude`) ||
+          path.basename(normalizedPath) === '.claude'
+        ) {
+          vscode.window.showErrorMessage('Cannot delete the .claude folder itself')
+          return
         }
       }
 
-      const names = items.map(i => i.configItem?.name || i.label).join(', ');
-      const itemCount = items.length;
+      const names = items.map((i) => i.configItem?.name || i.label).join(', ')
+      const itemCount = items.length
 
       const confirmation = await vscode.window.showWarningMessage(
-        itemCount > 1
-          ? `Delete ${itemCount} items (${names})?`
-          : `Delete "${names}"?`,
+        itemCount > 1 ? `Delete ${itemCount} items (${names})?` : `Delete "${names}"?`,
         { modal: true },
-        'Delete'
-      );
+        'Delete',
+      )
 
-      if (confirmation !== 'Delete') return;
+      if (confirmation !== 'Delete') return
 
       for (const i of items) {
         if (i.configItem?.uri) {
-          const isFolder = i.contextValue === 'subfolder';
-          await vscode.workspace.fs.delete(i.configItem.uri, { recursive: isFolder });
+          try {
+            const isFolder = i.contextValue === 'subfolder'
+            await vscode.workspace.fs.delete(i.configItem.uri, {
+              recursive: isFolder,
+            })
+          } catch {
+            vscode.window.showErrorMessage(`Failed to delete: ${i.configItem.name}`)
+          }
         }
       }
-    }
-  );
+    },
+  )
 
   // Rename command
   const renameCommand = vscode.commands.registerCommand(
     'claudeLens.rename',
     async (item: TreeItem) => {
-      if (!item.configItem?.uri) return;
+      if (!item.configItem?.uri) return
 
-      const oldName = item.configItem.name;
+      const oldName = item.configItem.name
       const newName = await vscode.window.showInputBox({
         prompt: 'Enter new name',
         value: oldName,
         validateInput: (value) => {
           if (!value || value.trim().length === 0) {
-            return 'Name is required';
+            return 'Name is required'
           }
-          if (!/^[a-zA-Z0-9_\-\.]+$/.test(value)) {
-            return 'Name can only contain letters, numbers, hyphens, underscores, and dots';
+          if (!/^[a-zA-Z0-9_\-.]+$/.test(value)) {
+            return 'Name can only contain letters, numbers, hyphens, underscores, and dots'
           }
           // Prevent path traversal (allow dotfiles like .gitignore)
           if (value === '.' || value === '..' || value.includes('..')) {
-            return 'Invalid name';
+            return 'Invalid name'
           }
-          return null;
-        }
-      });
+          return null
+        },
+      })
 
-      if (!newName || newName === oldName) return;
+      if (!newName || newName === oldName) return
 
-      const oldUri = item.configItem.uri;
-      const parentDir = path.dirname(oldUri.fsPath);
-      const newUri = vscode.Uri.file(path.join(parentDir, newName));
+      const oldUri = item.configItem.uri
+      const parentDir = path.dirname(oldUri.fsPath)
+      const newUri = vscode.Uri.file(path.join(parentDir, newName))
 
-      await vscode.workspace.fs.rename(oldUri, newUri);
-    }
-  );
+      try {
+        await vscode.workspace.fs.rename(oldUri, newUri)
+      } catch {
+        vscode.window.showErrorMessage(`Failed to rename: ${oldName}`)
+      }
+    },
+  )
 
   // File system watcher for .claude folders
-  fileWatcher = vscode.workspace.createFileSystemWatcher('**/.claude/**');
-  fileWatcher.onDidCreate(refreshAll);
-  fileWatcher.onDidDelete(refreshAll);
+  fileWatcher = vscode.workspace.createFileSystemWatcher('**/.claude/**')
+  fileWatcher.onDidCreate(refreshAll)
+  fileWatcher.onDidDelete(refreshAll)
 
   // File system watcher for .mcp.json
-  mcpWatcher = vscode.workspace.createFileSystemWatcher('**/.mcp.json');
-  mcpWatcher.onDidCreate(refreshAll);
-  mcpWatcher.onDidChange(refreshAll);
-  mcpWatcher.onDidDelete(refreshAll);
+  mcpWatcher = vscode.workspace.createFileSystemWatcher('**/.mcp.json')
+  mcpWatcher.onDidCreate(refreshAll)
+  mcpWatcher.onDidChange(refreshAll)
+  mcpWatcher.onDidDelete(refreshAll)
 
   // Watch ~/.claude/teams/ and ~/.claude/tasks/ for real-time updates
-  const homeDir = os.homedir();
-  const teamsDir = path.join(homeDir, '.claude', 'teams');
-  const tasksDir = path.join(homeDir, '.claude', 'tasks');
+  const homeDir = os.homedir()
+  const teamsDir = path.join(homeDir, '.claude', 'teams')
+  const tasksDir = path.join(homeDir, '.claude', 'tasks')
 
   // Debounce refreshAll for team/task changes
-  let teamRefreshTimeout: ReturnType<typeof setTimeout> | undefined;
+  let teamRefreshTimeout: ReturnType<typeof setTimeout> | undefined
   const debouncedRefresh = () => {
-    if (teamRefreshTimeout) clearTimeout(teamRefreshTimeout);
-    teamRefreshTimeout = setTimeout(refreshAll, 500);
-  };
+    if (teamRefreshTimeout) clearTimeout(teamRefreshTimeout)
+    teamRefreshTimeout = setTimeout(refreshAll, 500)
+  }
 
-  try {
-    if (fs.existsSync(teamsDir)) {
-      teamWatcher = fs.watch(teamsDir, { recursive: true }, debouncedRefresh);
+  const createTeamWatcher = () => {
+    try {
+      if (fs.existsSync(teamsDir)) {
+        teamWatcher = fs.watch(teamsDir, { recursive: true }, debouncedRefresh)
+        teamWatcher.on('error', () => {
+          teamWatcher = undefined
+        })
+      }
+    } catch {
+      /* teams dir doesn't exist yet */
     }
-  } catch { /* teams dir doesn't exist yet */ }
+  }
 
-  try {
-    if (fs.existsSync(tasksDir)) {
-      taskWatcher = fs.watch(tasksDir, { recursive: true }, debouncedRefresh);
+  const createTaskWatcher = () => {
+    try {
+      if (fs.existsSync(tasksDir)) {
+        taskWatcher = fs.watch(tasksDir, { recursive: true }, debouncedRefresh)
+        taskWatcher.on('error', () => {
+          taskWatcher = undefined
+        })
+      }
+    } catch {
+      /* tasks dir doesn't exist yet */
     }
-  } catch { /* tasks dir doesn't exist yet */ }
+  }
 
-  // Watch ~/.claude/stats-cache.json for insights updates
-  const statsCachePath = path.join(homeDir, '.claude', 'stats-cache.json');
-  try {
-    if (fs.existsSync(statsCachePath)) {
-      insightsWatcher = fs.watch(statsCachePath, () => {
-        invalidateInsightsCache();
-        debouncedRefresh();
-      });
+  // Watch ~/.claude/stats-cache.json for insights stats updates
+  const statsCachePath = path.join(homeDir, '.claude', 'stats-cache.json')
+  const createInsightsWatcher = () => {
+    try {
+      if (fs.existsSync(statsCachePath)) {
+        insightsWatcher = fs.watch(statsCachePath, () => {
+          invalidateStatsCache()
+          debouncedRefresh()
+        })
+        insightsWatcher.on('error', () => {
+          insightsWatcher = undefined
+        })
+      }
+    } catch {
+      /* stats-cache.json may not exist yet */
     }
-  } catch { /* stats-cache.json may not exist yet */ }
+  }
+
+  // Watch ~/.claude/history.jsonl for live insights updates (sessions, projects, facets)
+  const historyPath = path.join(homeDir, '.claude', 'history.jsonl')
+  const createHistoryWatcher = () => {
+    try {
+      if (fs.existsSync(historyPath)) {
+        historyWatcher = fs.watch(historyPath, () => {
+          invalidateLiveCache()
+          debouncedRefresh()
+        })
+        historyWatcher.on('error', () => {
+          historyWatcher = undefined
+        })
+      }
+    } catch {
+      /* history.jsonl may not exist yet */
+    }
+  }
+
+  createTeamWatcher()
+  createTaskWatcher()
+  createInsightsWatcher()
+  createHistoryWatcher()
 
   // Create Productivity Pulse status bar
-  createProductivityPulse(context);
+  createProductivityPulse(context)
 
   // Periodically check if team/task/stats dirs appeared (they're created at runtime)
   const dirCheckInterval = setInterval(() => {
-    try {
-      if (!teamWatcher && fs.existsSync(teamsDir)) {
-        teamWatcher = fs.watch(teamsDir, { recursive: true }, debouncedRefresh);
-        debouncedRefresh();
-      }
-      if (!taskWatcher && fs.existsSync(tasksDir)) {
-        taskWatcher = fs.watch(tasksDir, { recursive: true }, debouncedRefresh);
-        debouncedRefresh();
-      }
-      if (!insightsWatcher && fs.existsSync(statsCachePath)) {
-        insightsWatcher = fs.watch(statsCachePath, () => {
-          invalidateInsightsCache();
-          debouncedRefresh();
-        });
-        debouncedRefresh();
-      }
-    } catch { /* ignore */ }
-  }, 10000);
+    if (!teamWatcher) {
+      createTeamWatcher()
+      if (teamWatcher) debouncedRefresh()
+    }
+    if (!taskWatcher) {
+      createTaskWatcher()
+      if (taskWatcher) debouncedRefresh()
+    }
+    if (!insightsWatcher) {
+      createInsightsWatcher()
+      if (insightsWatcher) debouncedRefresh()
+    }
+    if (!historyWatcher) {
+      createHistoryWatcher()
+      if (historyWatcher) debouncedRefresh()
+    }
+  }, 10000)
 
   // Watch for workspace folder changes
-  const workspaceFolderWatcher = vscode.workspace.onDidChangeWorkspaceFolders(refreshAll);
+  const workspaceFolderWatcher = vscode.workspace.onDidChangeWorkspaceFolders(refreshAll)
 
   context.subscriptions.push(
     treeView,
@@ -325,28 +390,31 @@ export function activate(context: vscode.ExtensionContext) {
     mcpWatcher,
     workspaceFolderWatcher,
     { dispose: disposeDashboardPanel },
-    { dispose: () => {
-      if (teamWatcher) teamWatcher.close();
-      if (taskWatcher) taskWatcher.close();
-      if (insightsWatcher) insightsWatcher.close();
-      clearInterval(dirCheckInterval);
-      if (teamRefreshTimeout) clearTimeout(teamRefreshTimeout);
-    }},
-  );
+    {
+      dispose: () => {
+        if (teamWatcher) teamWatcher.close()
+        if (taskWatcher) taskWatcher.close()
+        if (insightsWatcher) insightsWatcher.close()
+        if (historyWatcher) historyWatcher.close()
+        clearInterval(dirCheckInterval)
+        if (teamRefreshTimeout) clearTimeout(teamRefreshTimeout)
+      },
+    },
+  )
 }
 
 function getTargetPath(item: TreeItem): string | undefined {
   if (item.contextValue === 'claudeFolder' && item.folder) {
-    return item.folder.claudePath.fsPath;
+    return item.folder.claudePath.fsPath
   }
   if (item.contextValue === 'subfolder' && item.configItem?.uri) {
-    return item.configItem.uri.fsPath;
+    return item.configItem.uri.fsPath
   }
-  return undefined;
+  return undefined
 }
 
 function getMarkdownTemplate(fileName: string): string {
-  const name = path.basename(fileName, path.extname(fileName));
+  const name = path.basename(fileName, path.extname(fileName))
   return `---
 name: ${name}
 description: Description here
@@ -355,39 +423,45 @@ description: Description here
 # ${name}
 
 Content here...
-`;
+`
 }
 
-
 async function refreshAll(): Promise<void> {
-  await treeProvider.refresh();
-  const scanResult = treeProvider.getScanResult();
-  if (scanResult) {
-    const insights = await scanInsights();
-    treeProvider.updateInsights(insights);
+  try {
+    await treeProvider.refresh()
+    const scanResult = treeProvider.getScanResult()
+    if (scanResult) {
+      const insights = await scanInsights()
+      treeProvider.updateInsights(insights)
 
-    const updatedResult = treeProvider.getScanResult()!;
-    statsProvider.updateStats(updatedResult.stats);
-    updateDashboardPanel(updatedResult);
-    updateProductivityPulse(insights);
+      const updatedResult = treeProvider.getScanResult()!
+      statsProvider.updateStats(updatedResult.stats)
+      updateDashboardPanel(updatedResult)
+      updateProductivityPulse(insights)
+    }
+  } catch {
+    // Refresh failed silently — will retry on next trigger
   }
 }
 
 export function deactivate() {
   if (fileWatcher) {
-    fileWatcher.dispose();
+    fileWatcher.dispose()
   }
   if (mcpWatcher) {
-    mcpWatcher.dispose();
+    mcpWatcher.dispose()
   }
   if (teamWatcher) {
-    teamWatcher.close();
+    teamWatcher.close()
   }
   if (taskWatcher) {
-    taskWatcher.close();
+    taskWatcher.close()
   }
   if (insightsWatcher) {
-    insightsWatcher.close();
+    insightsWatcher.close()
   }
-  disposeDashboardPanel();
+  if (historyWatcher) {
+    historyWatcher.close()
+  }
+  disposeDashboardPanel()
 }

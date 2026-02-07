@@ -3,57 +3,66 @@
  * Feature 6: Project time distribution + session comparison
  */
 
-import { InsightsData } from '../../insightsTypes';
-import { renderDonutChartSvg } from '../charts/donutChart';
-import { renderBarChartSvg } from '../charts/barChart';
+import { InsightsData } from '../../insightsTypes'
+import { renderDonutChartSvg } from '../charts/donutChart'
+import { renderBarChartSvg } from '../charts/barChart'
 
 const PROJECT_COLORS = [
-  '#8B5CF6', '#3B82F6', '#10B981', '#F59E0B', '#EF4444',
-  '#EC4899', '#14B8A6', '#F97316', '#6366F1', '#84CC16',
-];
+  '#8B5CF6',
+  '#3B82F6',
+  '#10B981',
+  '#F59E0B',
+  '#EF4444',
+  '#EC4899',
+  '#14B8A6',
+  '#F97316',
+  '#6366F1',
+  '#84CC16',
+]
 
 export function renderProjectFocusSection(insights: InsightsData): string {
-  const { projectFocus } = insights;
-  if (projectFocus.length === 0) return '';
+  const { projectFocus } = insights
+  if (projectFocus.length === 0) return ''
 
-  const totalMessages = projectFocus.reduce((s, p) => s + p.messageCount, 0);
-  const totalSessions = projectFocus.reduce((s, p) => s + p.sessionCount, 0);
+  const totalMessages = projectFocus.reduce((s, p) => s + p.messageCount, 0)
+  const totalSessions = projectFocus.reduce((s, p) => s + p.sessionCount, 0)
 
   // Top projects (limit to 10)
-  const topProjects = projectFocus.slice(0, 10);
+  const topProjects = projectFocus.slice(0, 10)
 
   // Donut chart - message distribution
   const donutSegments = topProjects.map((p, i) => ({
     label: p.displayName,
     value: p.messageCount,
     color: PROJECT_COLORS[i % PROJECT_COLORS.length],
-  }));
+  }))
 
   const donut = renderDonutChartSvg({
     segments: donutSegments,
     size: 200,
     centerValue: `${topProjects.length}`,
     centerLabel: 'Projects',
-  });
+  })
 
   // Bar chart - session count
   const barData = topProjects.map((p, i) => ({
     label: p.displayName,
     value: p.sessionCount,
     color: PROJECT_COLORS[i % PROJECT_COLORS.length],
-  }));
+  }))
 
   const barChart = renderBarChartSvg({
     data: barData,
     width: 400,
     maxBars: 10,
-  });
+  })
 
   // Project table
-  const tableRows = topProjects.map((p, i) => {
-    const pct = totalMessages > 0 ? Math.round((p.messageCount / totalMessages) * 100) : 0;
-    const color = PROJECT_COLORS[i % PROJECT_COLORS.length];
-    return `
+  const tableRows = topProjects
+    .map((p, i) => {
+      const pct = totalMessages > 0 ? Math.round((p.messageCount / totalMessages) * 100) : 0
+      const color = PROJECT_COLORS[i % PROJECT_COLORS.length]
+      return `
     <tr>
       <td><span class="project-dot" style="background:${color}"></span>${escapeHtml(p.displayName)}</td>
       <td>${p.sessionCount}</td>
@@ -64,8 +73,9 @@ export function renderProjectFocusSection(insights: InsightsData): string {
           <span>${pct}%</span>
         </div>
       </td>
-    </tr>`;
-  }).join('');
+    </tr>`
+    })
+    .join('')
 
   const kpiCards = `
   <div class="insights-kpi-row">
@@ -81,7 +91,7 @@ export function renderProjectFocusSection(insights: InsightsData): string {
       <div class="kpi-value">${totalMessages.toLocaleString()}</div>
       <div class="kpi-label">Total Messages</div>
     </div>
-  </div>`;
+  </div>`
 
   return `
   <div class="insights-section-block">
@@ -111,7 +121,7 @@ export function renderProjectFocusSection(insights: InsightsData): string {
         <tbody>${tableRows}</tbody>
       </table>
     </div>
-  </div>`;
+  </div>`
 }
 
 function escapeHtml(str: string): string {
@@ -119,5 +129,5 @@ function escapeHtml(str: string): string {
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+    .replace(/"/g, '&quot;')
 }

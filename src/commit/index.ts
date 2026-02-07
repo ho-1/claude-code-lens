@@ -1,1 +1,1 @@
-export { generateCommitCommand, stopGeneration } from './generateCommit';
+export { generateCommitCommand, stopGeneration } from './generateCommit'

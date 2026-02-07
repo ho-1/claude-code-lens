@@ -3,39 +3,39 @@
  * Provides unified icon selection logic for both webview and tree view
  */
 
-import * as vscode from 'vscode';
-import { COLORS, THEME_COLORS } from '../constants/colors';
-import { SVG_ICONS, THEME_ICON_NAMES } from '../constants/icons';
-import { getFolderCategory, FolderCategory } from '../constants/folderCategories';
+import * as vscode from 'vscode'
+import { COLORS, THEME_COLORS } from '../constants/colors'
+import { SVG_ICONS, THEME_ICON_NAMES } from '../constants/icons'
+import { getFolderCategory, FolderCategory } from '../constants/folderCategories'
 
 /**
  * Get SVG icon for a file based on filename and parent folder
  * Used in webview rendering
  */
 export function getSvgIcon(filename: string, parentFolder?: string): string {
-  const lowerName = filename.toLowerCase();
-  const category = parentFolder ? getFolderCategory(parentFolder) : null;
+  const lowerName = filename.toLowerCase()
+  const category = parentFolder ? getFolderCategory(parentFolder) : null
 
   // Check parent folder category first
   if (category) {
-    return getSvgIconForCategory(category);
+    return getSvgIconForCategory(category)
   }
 
   // Check filename
   if (lowerName === 'claude.md') {
-    return SVG_ICONS.document(COLORS.document);
+    return SVG_ICONS.document(COLORS.document)
   }
   if (lowerName.startsWith('settings') && lowerName.endsWith('.json')) {
-    return SVG_ICONS.gear(COLORS.gear);
+    return SVG_ICONS.gear(COLORS.gear)
   }
   if (lowerName.endsWith('.md')) {
-    return SVG_ICONS.file(COLORS.file);
+    return SVG_ICONS.file(COLORS.file)
   }
   if (lowerName.endsWith('.json')) {
-    return SVG_ICONS.gear(COLORS.gear);
+    return SVG_ICONS.gear(COLORS.gear)
   }
 
-  return SVG_ICONS.file(COLORS.file);
+  return SVG_ICONS.file(COLORS.file)
 }
 
 /**
@@ -44,21 +44,21 @@ export function getSvgIcon(filename: string, parentFolder?: string): string {
 function getSvgIconForCategory(category: FolderCategory): string {
   switch (category) {
     case 'agents':
-      return SVG_ICONS.robot(COLORS.robot);
+      return SVG_ICONS.robot(COLORS.robot)
     case 'skills':
-      return SVG_ICONS.target(COLORS.target);
+      return SVG_ICONS.sparkle(COLORS.target)
     case 'commands':
-      return SVG_ICONS.terminal(COLORS.terminal);
+      return SVG_ICONS.terminal(COLORS.terminal)
     case 'hooks':
-      return SVG_ICONS.bolt(COLORS.bolt);
+      return SVG_ICONS.bolt(COLORS.bolt)
     case 'rules':
-      return SVG_ICONS.book(COLORS.book);
+      return SVG_ICONS.book(COLORS.book)
     case 'teams':
-      return SVG_ICONS.team(COLORS.team);
+      return SVG_ICONS.team(COLORS.team)
     case 'tasks':
-      return SVG_ICONS.task(COLORS.task);
+      return SVG_ICONS.task(COLORS.task)
     default:
-      return SVG_ICONS.file(COLORS.file);
+      return SVG_ICONS.file(COLORS.file)
   }
 }
 
@@ -67,14 +67,14 @@ function getSvgIconForCategory(category: FolderCategory): string {
  * Used in webview rendering
  */
 export function getSvgFolderIcon(folderName: string, isOpen: boolean = false): string {
-  const category = getFolderCategory(folderName);
-  const iconFn = isOpen ? SVG_ICONS.folderOpen : SVG_ICONS.folder;
+  const category = getFolderCategory(folderName)
+  const iconFn = isOpen ? SVG_ICONS.folderOpen : SVG_ICONS.folder
 
   if (category) {
-    return iconFn(getCategoryColor(category));
+    return iconFn(getCategoryColor(category))
   }
 
-  return iconFn(COLORS.folder);
+  return iconFn(COLORS.folder)
 }
 
 /**
@@ -83,21 +83,21 @@ export function getSvgFolderIcon(folderName: string, isOpen: boolean = false): s
 function getCategoryColor(category: FolderCategory): string {
   switch (category) {
     case 'agents':
-      return COLORS.robot;
+      return COLORS.robot
     case 'skills':
-      return COLORS.target;
+      return COLORS.target
     case 'commands':
-      return COLORS.terminal;
+      return COLORS.terminal
     case 'hooks':
-      return COLORS.bolt;
+      return COLORS.bolt
     case 'rules':
-      return COLORS.book;
+      return COLORS.book
     case 'teams':
-      return COLORS.team;
+      return COLORS.team
     case 'tasks':
-      return COLORS.task;
+      return COLORS.task
     default:
-      return COLORS.file;
+      return COLORS.file
   }
 }
 
@@ -106,35 +106,32 @@ function getCategoryColor(category: FolderCategory): string {
  * Used in tree view rendering
  */
 export function getThemeIcon(filename: string, parentFolder?: string): vscode.ThemeIcon {
-  const lowerName = filename.toLowerCase();
-  const category = parentFolder ? getFolderCategory(parentFolder) : null;
+  const lowerName = filename.toLowerCase()
+  const category = parentFolder ? getFolderCategory(parentFolder) : null
 
   // Check parent folder category first
   if (category) {
-    return getThemeIconForCategory(category);
+    return getThemeIconForCategory(category)
   }
 
   // Check filename
   if (lowerName === 'claude.md') {
     return new vscode.ThemeIcon(
       THEME_ICON_NAMES.document,
-      new vscode.ThemeColor(THEME_COLORS.document)
-    );
+      new vscode.ThemeColor(THEME_COLORS.document),
+    )
   }
   if (lowerName.startsWith('settings') && lowerName.endsWith('.json')) {
-    return new vscode.ThemeIcon(
-      THEME_ICON_NAMES.gear,
-      new vscode.ThemeColor(THEME_COLORS.gear)
-    );
+    return new vscode.ThemeIcon(THEME_ICON_NAMES.gear, new vscode.ThemeColor(THEME_COLORS.gear))
   }
   if (lowerName.endsWith('.md')) {
-    return new vscode.ThemeIcon(THEME_ICON_NAMES.fileText);
+    return new vscode.ThemeIcon(THEME_ICON_NAMES.fileText)
   }
   if (lowerName.endsWith('.json')) {
-    return new vscode.ThemeIcon(THEME_ICON_NAMES.json);
+    return new vscode.ThemeIcon(THEME_ICON_NAMES.json)
   }
 
-  return new vscode.ThemeIcon(THEME_ICON_NAMES.file);
+  return new vscode.ThemeIcon(THEME_ICON_NAMES.file)
 }
 
 /**
@@ -143,42 +140,27 @@ export function getThemeIcon(filename: string, parentFolder?: string): vscode.Th
 function getThemeIconForCategory(category: FolderCategory): vscode.ThemeIcon {
   switch (category) {
     case 'agents':
-      return new vscode.ThemeIcon(
-        THEME_ICON_NAMES.robot,
-        new vscode.ThemeColor(THEME_COLORS.robot)
-      );
+      return new vscode.ThemeIcon(THEME_ICON_NAMES.robot, new vscode.ThemeColor(THEME_COLORS.robot))
     case 'skills':
       return new vscode.ThemeIcon(
-        THEME_ICON_NAMES.target,
-        new vscode.ThemeColor(THEME_COLORS.target)
-      );
+        THEME_ICON_NAMES.sparkle,
+        new vscode.ThemeColor(THEME_COLORS.target),
+      )
     case 'commands':
       return new vscode.ThemeIcon(
         THEME_ICON_NAMES.terminal,
-        new vscode.ThemeColor(THEME_COLORS.terminal)
-      );
+        new vscode.ThemeColor(THEME_COLORS.terminal),
+      )
     case 'hooks':
-      return new vscode.ThemeIcon(
-        THEME_ICON_NAMES.bolt,
-        new vscode.ThemeColor(THEME_COLORS.bolt)
-      );
+      return new vscode.ThemeIcon(THEME_ICON_NAMES.bolt, new vscode.ThemeColor(THEME_COLORS.bolt))
     case 'rules':
-      return new vscode.ThemeIcon(
-        THEME_ICON_NAMES.book,
-        new vscode.ThemeColor(THEME_COLORS.book)
-      );
+      return new vscode.ThemeIcon(THEME_ICON_NAMES.book, new vscode.ThemeColor(THEME_COLORS.book))
     case 'teams':
-      return new vscode.ThemeIcon(
-        THEME_ICON_NAMES.team,
-        new vscode.ThemeColor(THEME_COLORS.team)
-      );
+      return new vscode.ThemeIcon(THEME_ICON_NAMES.team, new vscode.ThemeColor(THEME_COLORS.team))
     case 'tasks':
-      return new vscode.ThemeIcon(
-        THEME_ICON_NAMES.task,
-        new vscode.ThemeColor(THEME_COLORS.task)
-      );
+      return new vscode.ThemeIcon(THEME_ICON_NAMES.task, new vscode.ThemeColor(THEME_COLORS.task))
     default:
-      return new vscode.ThemeIcon(THEME_ICON_NAMES.file);
+      return new vscode.ThemeIcon(THEME_ICON_NAMES.file)
   }
 }
 
@@ -187,19 +169,19 @@ function getThemeIconForCategory(category: FolderCategory): vscode.ThemeIcon {
  * Used in tree view rendering
  */
 export function getThemeFolderIcon(folderName: string): vscode.ThemeIcon {
-  const category = getFolderCategory(folderName);
+  const category = getFolderCategory(folderName)
 
   if (category) {
     return new vscode.ThemeIcon(
       THEME_ICON_NAMES.folder,
-      new vscode.ThemeColor(getThemeColorForCategory(category))
-    );
+      new vscode.ThemeColor(getThemeColorForCategory(category)),
+    )
   }
 
   return new vscode.ThemeIcon(
     THEME_ICON_NAMES.folder,
-    new vscode.ThemeColor('descriptionForeground')
-  );
+    new vscode.ThemeColor('descriptionForeground'),
+  )
 }
 
 /**
@@ -208,20 +190,20 @@ export function getThemeFolderIcon(folderName: string): vscode.ThemeIcon {
 function getThemeColorForCategory(category: FolderCategory): string {
   switch (category) {
     case 'agents':
-      return THEME_COLORS.robot;
+      return THEME_COLORS.robot
     case 'skills':
-      return THEME_COLORS.target;
+      return THEME_COLORS.target
     case 'commands':
-      return THEME_COLORS.terminal;
+      return THEME_COLORS.terminal
     case 'hooks':
-      return THEME_COLORS.bolt;
+      return THEME_COLORS.bolt
     case 'rules':
-      return THEME_COLORS.book;
+      return THEME_COLORS.book
     case 'teams':
-      return THEME_COLORS.team;
+      return THEME_COLORS.team
     case 'tasks':
-      return THEME_COLORS.task;
+      return THEME_COLORS.task
     default:
-      return THEME_COLORS.gear;
+      return THEME_COLORS.gear
   }
 }

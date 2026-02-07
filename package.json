@@ -2,7 +2,7 @@
   "name": "claude-code-lens",
   "displayName": "Claude Code Lens",
   "description": "Visualize and manage .claude configuration folders in VS Code. Browse, edit, and organize your Claude Code configurations with ease.",
-  "version": "0.2.3",
+  "version": "0.3.0",
   "publisher": "Byungho",
   "icon": "resources/icon.png",
   "engines": {
@@ -168,7 +168,8 @@
     "pretest": "pnpm run compile && pnpm run compile:test",
     "lint": "eslint src --ext ts",
     "test": "node ./out/test/runTest.js",
-    "test:unit": "mocha --require ts-node/register src/test/suite/*.test.ts"
+    "test:unit": "mocha --require ts-node/register src/test/suite/*.test.ts",
+    "prepare": "husky"
   },
   "devDependencies": {
     "@types/glob": "^9.0.0",
@@ -181,8 +182,17 @@
     "esbuild": "^0.20.0",
     "eslint": "^8.56.0",
     "glob": "^13.0.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
     "mocha": "^10.2.0",
+    "prettier": "^3.8.1",
     "typescript": "^5.3.3"
+  },
+  "lint-staged": {
+    "*.ts": [
+      "eslint --fix",
+      "prettier --write"
+    ]
   },
   "repository": {
     "type": "git",

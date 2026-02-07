@@ -1,26 +1,23 @@
-const isWindows = process.platform === 'win32';
+const isWindows = process.platform === 'win32'
 
 // Build paths only if environment variables exist
 function getWindowsPaths(): string[] {
-  const paths: string[] = [];
+  const paths: string[] = []
   if (process.env.LOCALAPPDATA) {
-    paths.push(`${process.env.LOCALAPPDATA}\\Programs\\claude\\claude.exe`);
+    paths.push(`${process.env.LOCALAPPDATA}\\Programs\\claude\\claude.exe`)
   }
   if (process.env.APPDATA) {
-    paths.push(`${process.env.APPDATA}\\npm\\claude.cmd`);
+    paths.push(`${process.env.APPDATA}\\npm\\claude.cmd`)
   }
-  return paths;
+  return paths
 }
 
 function getUnixPaths(): string[] {
-  const paths: string[] = [
-    '/usr/local/bin/claude',
-    '/opt/homebrew/bin/claude',
-  ];
+  const paths: string[] = ['/usr/local/bin/claude', '/opt/homebrew/bin/claude']
   if (process.env.HOME) {
-    paths.push(`${process.env.HOME}/.local/bin/claude`);
+    paths.push(`${process.env.HOME}/.local/bin/claude`)
   }
-  return paths;
+  return paths
 }
 
 export const CLI = {
@@ -28,34 +25,30 @@ export const CLI = {
 
   SEARCH_COMMANDS: isWindows
     ? ['where claude']
-    : [
-        'which claude',
-        '/bin/bash -l -c "which claude"',
-        '/bin/zsh -l -c "which claude"',
-      ],
+    : ['which claude', '/bin/bash -l -c "which claude"', '/bin/zsh -l -c "which claude"'],
 
   INSTALL_URL: 'https://docs.anthropic.com/en/docs/claude-code',
-} as const;
+} as const
 
 export const TIMEOUTS = {
   CLI_SEARCH: 5000,
   PATH_CHECK: 1000,
   COMMIT_GENERATE: 60000,
-} as const;
+} as const
 
 export const LIMITS = {
   MAX_DIFF_SIZE: 100_000, // ~100KB, prevents token limit issues
-} as const;
+} as const
 
 export const MODELS = {
-  HAIKU: "haiku",
-  SONNET: "sonnet",
-  OPUS: "opus",
-} as const;
+  HAIKU: 'haiku',
+  SONNET: 'sonnet',
+  OPUS: 'opus',
+} as const
 
-export type ModelType = (typeof MODELS)[keyof typeof MODELS];
+export type ModelType = (typeof MODELS)[keyof typeof MODELS]
 
-export const DEFAULT_MODEL = MODELS.HAIKU;
+export const DEFAULT_MODEL = MODELS.HAIKU
 
 export const DEFAULT_COMMIT_PROMPT = `Generate a commit message for the following git diff.
 
@@ -66,4 +59,4 @@ Rules:
 - Keep first line under 72 characters
 - Be specific and concise
 - Output plain text only, no markdown, no code blocks, no backticks
-`;
+`

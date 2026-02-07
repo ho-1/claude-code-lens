@@ -2,13 +2,15 @@
  * HTML rendering functions for the dashboard webview
  */
 
-import { ScanResult } from '../types';
-import { DASHBOARD_STYLES } from './styles';
-import { renderCardView, getCardViewScripts } from './cardView';
-import { renderTeamView, getTeamViewScripts } from './teamView';
-import { renderTaskView, getTaskViewScripts } from './taskView';
-import { renderInsightsView, getInsightsViewScripts } from './insightsView';
-import { renderSessionExplorer, getSessionExplorerScripts } from './insightsSections/sessionExplorer';
+import { ScanResult } from '../types'
+import { DASHBOARD_STYLES } from './styles'
+import { renderCardView, getCardViewScripts } from './cardView'
+import { renderTeamView, getTeamViewScripts } from './teamView'
+import { renderInsightsView, getInsightsViewScripts } from './insightsView'
+import {
+  renderSessionExplorer,
+  getSessionExplorerScripts,
+} from './insightsSections/sessionExplorer'
 
 /**
  * Generate the complete HTML content for the dashboard
@@ -55,11 +57,7 @@ export function getHtmlContent(result: ScanResult): string {
   </div>
 
   <div id="tab-teams" class="tab-content">
-    ${renderTeamView(result)}
-  </div>
-
-  <div id="tab-tasks" class="tab-content">
-    ${renderTaskView(result)}
+    ${renderTeamView(result, getWorkspacePaths(result))}
   </div>
 
   <div id="tab-sessions" class="tab-content">
@@ -120,44 +118,31 @@ export function getHtmlContent(result: ScanResult): string {
 
     ${getTeamViewScripts()}
 
-    ${getTaskViewScripts()}
-
     ${getInsightsViewScripts()}
 
     ${getSessionExplorerScripts()}
   </script>
 </body>
-</html>`;
+</html>`
 }
 
 /**
  * Render the tab bar
  */
-function renderTabBar(result: ScanResult): string {
-  const teamBadge = result.teamData.teams.length > 0 ? `<span class="tab-badge">${result.teamData.teams.length}</span>` : '';
-  const taskBadge = result.teamData.tasks.length > 0 ? `<span class="tab-badge">${result.teamData.tasks.length}</span>` : '';
-
+function renderTabBar(_result: ScanResult): string {
   return `
   <div class="tab-bar">
     <button class="tab-btn active" data-tab="card">
       <svg viewBox="0 0 16 16" fill="currentColor">
         <path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5v-3zM2.5 2a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3zm6.5.5A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5v-3zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3zM1 10.5A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5v-3zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3zm6.5.5A1.5 1.5 0 0 1 10.5 9h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 9 13.5v-3zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3z"/>
       </svg>
-      Cards
+      Config
     </button>
     <button class="tab-btn" data-tab="teams">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
       </svg>
       Teams
-      ${teamBadge}
-    </button>
-    <button class="tab-btn" data-tab="tasks">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
-      </svg>
-      Tasks
-      ${taskBadge}
     </button>
     <button class="tab-btn" data-tab="sessions">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -171,12 +156,12 @@ function renderTabBar(result: ScanResult): string {
       </svg>
       Insights (Global)
     </button>
-  </div>`;
+  </div>`
 }
 
 /**
  * Extract workspace folder paths from scan result for session filtering
  */
 function getWorkspacePaths(result: ScanResult): string[] {
-  return result.folders.map(f => f.workspaceFolder.uri.fsPath);
+  return result.folders.map((f) => f.workspaceFolder.uri.fsPath)
 }

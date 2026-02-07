@@ -1,52 +1,66 @@
-import * as vscode from 'vscode';
-import { ClaudeStats } from './types';
-import { getStatsIcons } from './constants/icons';
-import { escapeHtml } from './utils/escapeHtml';
+import * as vscode from 'vscode'
+import { ClaudeStats } from './types'
+import { getStatsIcons } from './constants/icons'
+import { escapeHtml } from './utils/escapeHtml'
 
 export class StatsViewProvider implements vscode.WebviewViewProvider {
-  public static readonly viewType = 'claudeLensStats';
+  public static readonly viewType = 'claudeLensStats'
 
-  private _view?: vscode.WebviewView;
-  private _stats?: ClaudeStats;
+  private _view?: vscode.WebviewView
+  private _stats?: ClaudeStats
 
   constructor(private readonly _extensionUri: vscode.Uri) {}
 
   public resolveWebviewView(
     webviewView: vscode.WebviewView,
     _context: vscode.WebviewViewResolveContext,
-    _token: vscode.CancellationToken
+    _token: vscode.CancellationToken,
   ): void {
-    this._view = webviewView;
+    this._view = webviewView
 
     webviewView.webview.options = {
       enableScripts: true,
       localResourceRoots: [this._extensionUri],
-    };
+    }
 
     webviewView.webview.onDidReceiveMessage((message) => {
       if (message.command === 'openDashboard') {
-        vscode.commands.executeCommand('claudeLens.openDashboard');
+        vscode.commands.executeCommand('claudeLens.openDashboard')
       }
-    });
+    })
 
-    this._updateHtml();
+    this._updateHtml()
   }
 
   public updateStats(stats: ClaudeStats): void {
-    this._stats = stats;
-    this._updateHtml();
+    this._stats = stats
+    this._updateHtml()
   }
 
   private _updateHtml(): void {
-    if (!this._view) return;
+    if (!this._view) return
 
-    const stats = this._stats || { totalFiles: 0, skills: 0, commands: 0, agents: 0, hooks: 0, configs: 0, teams: 0, tasks: 0, teammates: 0, skillItems: [], commandItems: [], agentItems: [], teamItems: [] };
-    const icons = getStatsIcons();
+    const stats = this._stats || {
+      totalFiles: 0,
+      skills: 0,
+      commands: 0,
+      agents: 0,
+      hooks: 0,
+      configs: 0,
+      teams: 0,
+      tasks: 0,
+      teammates: 0,
+      skillItems: [],
+      commandItems: [],
+      agentItems: [],
+      teamItems: [],
+    }
+    const icons = getStatsIcons()
 
     // Format items for display
-    const skillsFormatted = stats.skillItems.map(s => `/${s}`);
-    const commandsFormatted = stats.commandItems.map(c => `/${c}`);
-    const agentsFormatted = stats.agentItems;
+    const skillsFormatted = stats.skillItems.map((s) => `/${s}`)
+    const commandsFormatted = stats.commandItems.map((c) => `/${c}`)
+    const agentsFormatted = stats.agentItems
 
     this._view.webview.html = `<!DOCTYPE html>
 <html lang="en">
@@ -171,16 +185,17 @@ export class StatsViewProvider implements vscode.WebviewViewProvider {
 <body>
   <div class="stats-grid">
     <div class="stat-card clickable" data-dropdown="skills">
-      <span class="stat-icon">${icons.target}</span>
+      <span class="stat-icon">${icons.sparkle}</span>
       <div class="stat-info">
         <span class="stat-value">${stats.skills}</span>
         <span class="stat-label">Skills</span>
       </div>
     </div>
     <div class="dropdown" id="dropdown-skills">
-      ${skillsFormatted.length > 0
-        ? skillsFormatted.map(s => `<div class="dropdown-item">${escapeHtml(s)}</div>`).join('')
-        : '<div class="dropdown-empty">No skills found</div>'
+      ${
+        skillsFormatted.length > 0
+          ? skillsFormatted.map((s) => `<div class="dropdown-item">${escapeHtml(s)}</div>`).join('')
+          : '<div class="dropdown-empty">No skills found</div>'
       }
     </div>
     <div class="stat-card clickable" data-dropdown="commands">
@@ -191,9 +206,12 @@ export class StatsViewProvider implements vscode.WebviewViewProvider {
       </div>
     </div>
     <div class="dropdown" id="dropdown-commands">
-      ${commandsFormatted.length > 0
-        ? commandsFormatted.map(c => `<div class="dropdown-item">${escapeHtml(c)}</div>`).join('')
-        : '<div class="dropdown-empty">No commands found</div>'
+      ${
+        commandsFormatted.length > 0
+          ? commandsFormatted
+              .map((c) => `<div class="dropdown-item">${escapeHtml(c)}</div>`)
+              .join('')
+          : '<div class="dropdown-empty">No commands found</div>'
       }
     </div>
     <div class="stat-card clickable" data-dropdown="agents">
@@ -204,9 +222,10 @@ export class StatsViewProvider implements vscode.WebviewViewProvider {
       </div>
     </div>
     <div class="dropdown" id="dropdown-agents">
-      ${agentsFormatted.length > 0
-        ? agentsFormatted.map(a => `<div class="dropdown-item">${escapeHtml(a)}</div>`).join('')
-        : '<div class="dropdown-empty">No agents found</div>'
+      ${
+        agentsFormatted.length > 0
+          ? agentsFormatted.map((a) => `<div class="dropdown-item">${escapeHtml(a)}</div>`).join('')
+          : '<div class="dropdown-empty">No agents found</div>'
       }
     </div>
     <div class="stat-card">
@@ -231,9 +250,10 @@ export class StatsViewProvider implements vscode.WebviewViewProvider {
       </div>
     </div>
     <div class="dropdown" id="dropdown-teams">
-      ${stats.teamItems.length > 0
-        ? stats.teamItems.map(t => `<div class="dropdown-item">${escapeHtml(t)}</div>`).join('')
-        : '<div class="dropdown-empty">No teams found</div>'
+      ${
+        stats.teamItems.length > 0
+          ? stats.teamItems.map((t) => `<div class="dropdown-item">${escapeHtml(t)}</div>`).join('')
+          : '<div class="dropdown-empty">No teams found</div>'
       }
     </div>
   </div>
@@ -290,6 +310,6 @@ export class StatsViewProvider implements vscode.WebviewViewProvider {
     });
   </script>
 </body>
-</html>`;
+</html>`
   }
 }

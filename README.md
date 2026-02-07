@@ -3,7 +3,7 @@
 </h1>
 
 <p align="center">
-  <strong>Visualize and manage <code>.claude</code> configuration folders directly in VS Code</strong>
+  <strong>Visualize and manage your <code>.claude</code> configurations, agent teams, and usage insights — all inside VS Code.</strong>
 </p>
 
 <p align="center">
@@ -14,26 +14,31 @@
 
 ---
 
-![Claude Code Lens](resources/claude-code-lens.png)
-
----
-
 ## Features
 
-- **Overview Panel** — Stats for Files, Skills, Commands, Agents, Configs
-- **Config Files Panel** — TreeView of all `.claude` folders in workspace
-- **Dashboard** — Card view with file counts per folder
-- **AI Commit Message** — Generate commit message from git diff using Claude CLI
+### Config Dashboard
 
----
+Browse all `.claude` folders in your workspace at a glance. Skills, Commands, and Agents are grouped into color-coded cards.
 
-## AI Commit Message
+![Config Dashboard](resources/config.png)
+
+### Agent Teams & Tasks
+
+Monitor active agent teams and their members. Track task progress on a kanban board.
+
+![Agent Teams & Tasks](resources/teams.png)
+
+### Usage Insights
+
+Activity heatmap, token usage, session quality, tool breakdown, and project focus — powered by local Claude Code stats.
+
+![Usage Insights](resources/insights.png)
+
+### AI Commit Message
 
 Generate conventional commit messages with one click using Claude CLI.
 
 <img src="resources/ai-commit-message.png" width="200" alt="AI Commit Message">
-
-Click the sparkle icon (✨) in the Source Control panel to generate a commit message from your staged changes.
 
 ---
 

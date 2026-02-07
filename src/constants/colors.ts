@@ -20,9 +20,9 @@ export const COLORS = {
   // Permission colors
   allow: '#10B981', // green
   deny: '#EF4444', // red
-} as const;
+} as const
 
-export type ColorKey = keyof typeof COLORS;
+export type ColorKey = keyof typeof COLORS
 
 /**
  * VS Code theme color IDs for tree view icons
@@ -37,4 +37,4 @@ export const THEME_COLORS = {
   task: 'charts.blue',
   document: 'charts.orange',
   gear: 'descriptionForeground',
-} as const;
+} as const

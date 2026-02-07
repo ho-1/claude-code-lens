@@ -1,16 +1,16 @@
-import * as vscode from 'vscode';
-import { GitService } from './services/git';
-import { ClaudeService } from './services/claude';
-import { getCommitSettings } from './settings';
-import { LIMITS } from './constants';
-import type { GitRepository, GitExtension, GitAPI } from './types';
+import * as vscode from 'vscode'
+import { GitService } from './services/git'
+import { ClaudeService } from './services/claude'
+import { getCommitSettings } from './settings'
+import { LIMITS } from './constants'
+import type { GitRepository, GitExtension, GitAPI } from './types'
 
-let currentAbortController: AbortController | null = null;
+let currentAbortController: AbortController | null = null
 
 export function stopGeneration(): void {
   if (currentAbortController) {
-    currentAbortController.abort();
-    currentAbortController = null;
+    currentAbortController.abort()
+    currentAbortController = null
   }
 }
 
@@ -19,48 +19,40 @@ export async function generateCommitCommand(
 ): Promise<void> {
   // Toggle: if already generating, stop instead
   if (currentAbortController) {
-    stopGeneration();
-    return;
+    stopGeneration()
+    return
   }
 
   try {
-    const gitExtension = vscode.extensions.getExtension<GitExtension>('vscode.git');
+    const gitExtension = vscode.extensions.getExtension<GitExtension>('vscode.git')
     if (!gitExtension) {
-      vscode.window.showErrorMessage(
-        'Git extension not found. Please ensure Git is installed.',
-      );
-      return;
+      vscode.window.showErrorMessage('Git extension not found. Please ensure Git is installed.')
+      return
     }
 
     const git: GitAPI = gitExtension.isActive
       ? gitExtension.exports.getAPI(1)
-      : (await gitExtension.activate()).getAPI(1);
+      : (await gitExtension.activate()).getAPI(1)
 
     if (!git.repositories.length) {
-      vscode.window.showErrorMessage(
-        'No Git repository found in the current workspace.',
-      );
-      return;
+      vscode.window.showErrorMessage('No Git repository found in the current workspace.')
+      return
     }
 
-    let repository: GitRepository | undefined;
+    let repository: GitRepository | undefined
 
     if (sourceControlOrUri) {
       const targetUri =
-        sourceControlOrUri instanceof vscode.Uri
-          ? sourceControlOrUri
-          : sourceControlOrUri.rootUri;
+        sourceControlOrUri instanceof vscode.Uri ? sourceControlOrUri : sourceControlOrUri.rootUri
 
       if (targetUri) {
-        repository = git.repositories.find(
-          (repo) => repo.rootUri.fsPath === targetUri.fsPath,
-        );
+        repository = git.repositories.find((repo) => repo.rootUri.fsPath === targetUri.fsPath)
       }
     }
 
     if (!repository) {
       if (git.repositories.length === 1) {
-        repository = git.repositories[0];
+        repository = git.repositories[0]
       } else {
         const selected = await vscode.window.showQuickPick(
           git.repositories.map((repo) => ({
@@ -68,26 +60,22 @@ export async function generateCommitCommand(
             repository: repo,
           })),
           { placeHolder: 'Select a repository' },
-        );
+        )
         if (!selected) {
-          return;
+          return
         }
-        repository = selected.repository;
+        repository = selected.repository
       }
     }
 
-    const workspacePath = repository.rootUri.fsPath;
-    const gitService = new GitService(workspacePath);
-    const claudeService = new ClaudeService();
+    const workspacePath = repository.rootUri.fsPath
+    const gitService = new GitService(workspacePath)
+    const claudeService = new ClaudeService()
 
-    currentAbortController = new AbortController();
-    const signal = currentAbortController.signal;
+    currentAbortController = new AbortController()
+    const signal = currentAbortController.signal
 
-    await vscode.commands.executeCommand(
-      'setContext',
-      'claudeLens.isGenerating',
-      true,
-    );
+    await vscode.commands.executeCommand('setContext', 'claudeLens.isGenerating', true)
 
     try {
       await vscode.window.withProgress(
@@ -98,32 +86,30 @@ export async function generateCommitCommand(
         },
         async (progress, token) => {
           token.onCancellationRequested(() => {
-            currentAbortController?.abort();
-          });
+            currentAbortController?.abort()
+          })
 
           if (token.isCancellationRequested || signal.aborted) {
-            return;
+            return
           }
 
-          progress.report({ increment: 10, message: 'Getting diff...' });
-          let { diff, isStaged } = await gitService.getDiff();
+          progress.report({ increment: 10, message: 'Getting diff...' })
+          let { diff, isStaged } = await gitService.getDiff()
 
           if (signal.aborted) {
-            return;
+            return
           }
 
           if (!diff.trim()) {
-            vscode.window.showInformationMessage(
-              'No changes detected. Stage some changes first.',
-            );
-            return;
+            vscode.window.showInformationMessage('No changes detected. Stage some changes first.')
+            return
           }
 
           // Truncate large diffs to prevent token limit issues
-          let wasTruncated = false;
+          let wasTruncated = false
           if (diff.length > LIMITS.MAX_DIFF_SIZE) {
-            diff = diff.slice(0, LIMITS.MAX_DIFF_SIZE);
-            wasTruncated = true;
+            diff = diff.slice(0, LIMITS.MAX_DIFF_SIZE)
+            wasTruncated = true
           }
 
           if (!isStaged) {
@@ -131,24 +117,24 @@ export async function generateCommitCommand(
               'No staged changes found. Using unstaged changes.',
               'Continue',
               'Cancel',
-            );
+            )
             if (action !== 'Continue' || signal.aborted) {
-              return;
+              return
             }
           }
 
           if (wasTruncated) {
             vscode.window.showWarningMessage(
               'Diff was truncated due to size. Commit message may be incomplete.',
-            );
+            )
           }
 
-          progress.report({ increment: 20, message: 'Getting recent commits...' });
-          const recentCommits = await gitService.getRecentCommits(10);
+          progress.report({ increment: 20, message: 'Getting recent commits...' })
+          const recentCommits = await gitService.getRecentCommits(10)
 
-          progress.report({ increment: 20, message: 'Calling Claude...' });
+          progress.report({ increment: 20, message: 'Calling Claude...' })
 
-          const settings = getCommitSettings();
+          const settings = getCommitSettings()
 
           try {
             const message = await claudeService.generate(
@@ -157,36 +143,32 @@ export async function generateCommitCommand(
               settings.prompt,
               signal,
               recentCommits,
-            );
+            )
 
             if (signal.aborted) {
-              return;
+              return
             }
 
-            repository!.inputBox.value = message;
-            vscode.window.showInformationMessage('Commit message generated!');
+            repository!.inputBox.value = message
+            vscode.window.showInformationMessage('Commit message generated!')
           } catch (error) {
             if (signal.aborted) {
-              vscode.window.showInformationMessage('Generation stopped.');
-              return;
+              vscode.window.showInformationMessage('Generation stopped.')
+              return
             }
             if (error instanceof Error) {
-              vscode.window.showErrorMessage(sanitizeErrorMessage(error.message));
+              vscode.window.showErrorMessage(sanitizeErrorMessage(error.message))
             }
           }
         },
-      );
+      )
     } finally {
-      currentAbortController = null;
-      await vscode.commands.executeCommand(
-        'setContext',
-        'claudeLens.isGenerating',
-        false,
-      );
+      currentAbortController = null
+      await vscode.commands.executeCommand('setContext', 'claudeLens.isGenerating', false)
     }
   } catch (error) {
     if (error instanceof Error) {
-      vscode.window.showErrorMessage(sanitizeErrorMessage(error.message));
+      vscode.window.showErrorMessage(sanitizeErrorMessage(error.message))
     }
   }
 }
@@ -206,12 +188,12 @@ function sanitizeErrorMessage(message: string): string {
     'not logged in',
     'ETIMEDOUT',
     'timeout',
-  ];
+  ]
 
   for (const pattern of safePatterns) {
     if (message.includes(pattern)) {
       // Return only the first line, trimmed
-      return message.split('\n')[0].trim();
+      return message.split('\n')[0].trim()
     }
   }
 
@@ -221,16 +203,16 @@ function sanitizeErrorMessage(message: string): string {
   let sanitized = message
     .replace(/\/(?:Users|home|var|tmp|etc|usr|opt)\/[\w\-./]+/gi, '[path]')
     .replace(/[A-Z]:\\[\w\-\\./]+/gi, '[path]')
-    .replace(/\s+at\s+.+:\d+:\d+/g, '')  // Remove stack trace lines
-    .replace(/\n\s*at\s+.+/g, '');        // Remove multi-line stack traces
+    .replace(/\s+at\s+.+:\d+:\d+/g, '') // Remove stack trace lines
+    .replace(/\n\s*at\s+.+/g, '') // Remove multi-line stack traces
 
   // Take only first line
-  sanitized = sanitized.split('\n')[0].trim();
+  sanitized = sanitized.split('\n')[0].trim()
 
   // If message becomes too short or empty after sanitization, use generic message
   if (sanitized.length < 5) {
-    return 'An error occurred while generating commit message';
+    return 'An error occurred while generating commit message'
   }
 
-  return sanitized;
+  return sanitized
 }

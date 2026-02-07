@@ -2,4 +2,4 @@
  * Webview module public API
  */
 
-export { createDashboardPanel, updateDashboardPanel, disposeDashboardPanel } from './dashboardPanel';
+export { createDashboardPanel, updateDashboardPanel, disposeDashboardPanel } from './dashboardPanel'

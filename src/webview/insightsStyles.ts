@@ -330,4 +330,35 @@ export const INSIGHTS_STYLES = `
   margin: 0 auto;
   line-height: 1.5;
 }
-`;
+
+.insights-empty-message code,
+.insights-stats-banner code {
+  font-size: 11px;
+  background: var(--vscode-textCodeBlock-background, rgba(255,255,255,0.06));
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-family: var(--vscode-editor-font-family);
+}
+
+.insights-stats-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  margin-top: 12px;
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  background: var(--vscode-input-background);
+  border-radius: 6px;
+  border: 1px solid var(--vscode-widget-border, rgba(255,255,255,0.06));
+}
+
+.insights-stats-banner svg {
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
+.insights-stats-banner strong {
+  color: var(--vscode-foreground);
+}
+`

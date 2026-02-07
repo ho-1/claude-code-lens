@@ -2,7 +2,7 @@
  * CSS styles for the dashboard webview
  */
 
-import { INSIGHTS_STYLES } from './insightsStyles';
+import { INSIGHTS_STYLES } from './insightsStyles'
 
 export const DASHBOARD_STYLES = `
 * {
@@ -105,229 +105,192 @@ body {
   color: var(--vscode-charts-purple, #a855f7);
 }
 
-/* Project Card */
-.project-card {
+/* Project Section */
+.project-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
   margin-bottom: 24px;
-  background: var(--vscode-sideBar-background);
-  border-radius: 12px;
-  border: 1px solid var(--vscode-widget-border, rgba(255,255,255,0.08));
-  overflow: hidden;
 }
 
-.project-header {
+.project-section-header {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 14px 18px;
-  background: var(--vscode-titleBar-activeBackground, var(--vscode-sideBar-background));
+  gap: 8px;
+  padding-bottom: 8px;
   border-bottom: 1px solid var(--vscode-widget-border, rgba(255,255,255,0.06));
-  cursor: pointer;
+  min-width: 0;
 }
 
-.project-chevron {
-  font-size: 10px;
-  color: var(--vscode-descriptionForeground);
-  transition: transform 0.2s;
-}
-
-.project-chevron:not(.collapsed) {
-  transform: rotate(90deg);
-}
-
-.project-chevron.collapsed {
-  transform: rotate(0deg);
-}
-
-.project-icon {
+.project-section-icon {
   display: flex;
   align-items: center;
-  justify-content: center;
 }
 
-.project-icon svg {
+.project-section-icon svg {
   width: 18px;
   height: 18px;
 }
 
-.project-title {
-  font-weight: 500;
-  font-size: 13px;
-}
-
-.project-content {
-  padding: 16px 18px;
-}
-
-.project-content.collapsed {
-  display: none;
-}
-
-/* Root Files (CLAUDE.md, settings.json, etc.) */
-.root-files {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 16px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--vscode-widget-border, rgba(255,255,255,0.06));
-}
-
-.root-file-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  background: var(--vscode-editor-background);
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.root-file-item:hover {
-  background: var(--vscode-list-hoverBackground);
-}
-
-.root-file-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.root-file-icon svg {
-  width: 16px;
-  height: 16px;
-}
-
-.root-file-name {
-  font-size: 12px;
-  font-weight: 500;
-}
-
-/* Category Section */
-.category-section {
-  margin-bottom: 16px;
-  border-left: 3px solid var(--accent-color);
-  padding-left: 12px;
-}
-
-.category-section:last-child {
-  margin-bottom: 0;
-}
-
-.category-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-  padding: 4px 0;
-  cursor: pointer;
-}
-
-.category-chevron {
-  font-size: 10px;
-  color: var(--vscode-descriptionForeground);
-  transition: transform 0.2s;
-}
-
-.category-chevron:not(.collapsed) {
-  transform: rotate(90deg);
-}
-
-.category-chevron.collapsed {
-  transform: rotate(0deg);
-}
-
-.category-name {
-  font-size: 12px;
+.project-section-title {
+  font-size: 14px;
   font-weight: 600;
-  color: var(--accent-color);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
-.category-count {
+.project-section-count {
   font-size: 10px;
-  background: var(--vscode-badge-background, rgba(255,255,255,0.15));
-  color: var(--vscode-badge-foreground, rgba(255,255,255,0.7));
+  background: var(--vscode-badge-background);
+  color: var(--vscode-badge-foreground);
   padding: 1px 6px;
   border-radius: 10px;
 }
 
-/* Category Items */
-.category-items {
+/* Project Cards Grid */
+.project-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.project-card {
+  background: var(--vscode-sideBar-background);
+  border-radius: 10px;
+  border: 1px solid var(--vscode-widget-border, rgba(255,255,255,0.08));
+  overflow: hidden;
+}
+
+.project-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--vscode-widget-border, rgba(255,255,255,0.06));
+}
+
+.project-card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.project-card-title svg {
+  width: 16px;
+  height: 16px;
+}
+
+.project-card-badge {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: var(--vscode-badge-background);
+  color: var(--vscode-badge-foreground);
+}
+
+.project-card-body {
+  padding: 8px 12px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
-.category-items.collapsed {
-  display: none;
-}
-
-.category-item {
+/* Config Card (compact) */
+.config-card-body {
   padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.config-pill {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
   background: var(--vscode-editor-background);
   border-radius: 6px;
+  cursor: pointer;
+  font-size: 11px;
+  transition: background 0.15s;
+}
+
+.config-pill:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.config-pill .config-item-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.config-pill .config-item-name {
+  font-size: 11px;
+}
+
+/* Config Item */
+.config-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 4px;
   cursor: pointer;
   transition: background 0.15s;
 }
 
-.category-item:hover {
+.config-item:hover {
   background: var(--vscode-list-hoverBackground);
 }
 
-.category-item.expandable {
-  cursor: default;
+.config-item-icon {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
 }
 
-.item-main {
-  cursor: pointer;
+.config-item-icon svg {
+  width: 16px;
+  height: 16px;
 }
 
-.item-header {
+.config-item-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.config-item-row {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.item-chevron {
-  font-size: 10px;
-  color: var(--vscode-descriptionForeground);
-  transition: transform 0.2s;
-}
-
-.item-chevron.collapsed {
-  transform: rotate(0deg);
-}
-
-.item-chevron:not(.collapsed) {
-  transform: rotate(90deg);
-}
-
-.item-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.item-icon svg {
-  width: 16px;
-  height: 16px;
-}
-
-.item-name {
+.config-item-name {
   font-size: 12px;
   font-weight: 500;
 }
 
-.item-badge {
+.config-item-badge {
   font-size: 10px;
   color: var(--vscode-descriptionForeground);
 }
 
-/* Item Actions Container */
-.item-actions {
+.config-item-desc {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  margin-top: 2px;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Config Item Actions */
+.config-item-actions {
   display: flex;
   align-items: center;
   gap: 4px;
@@ -336,7 +299,7 @@ body {
   transition: opacity 0.15s;
 }
 
-.category-item:hover .item-actions {
+.config-item:hover .config-item-actions {
   opacity: 1;
 }
 
@@ -371,54 +334,67 @@ body {
   color: var(--vscode-charts-green, #4ade80);
 }
 
-.item-description {
-  font-size: 11px;
+/* Expandable item chevron */
+.config-item-chevron {
+  font-size: 10px;
   color: var(--vscode-descriptionForeground);
-  margin-top: 4px;
-  margin-left: 24px;
-  line-height: 1.4;
+  transition: transform 0.2s;
+  flex-shrink: 0;
 }
 
-/* Expanded Content */
-.item-expanded {
-  margin-top: 8px;
-  margin-left: 24px;
+.config-item-chevron:not(.collapsed) {
+  transform: rotate(90deg);
+}
+
+.config-item.expandable {
+  cursor: pointer;
+}
+
+/* Subitems container */
+.config-subitems {
   padding-left: 12px;
-  border-left: 1px solid var(--vscode-widget-border, rgba(255,255,255,0.1));
+  border-left: 1px solid var(--vscode-widget-border, rgba(255,255,255,0.08));
+  margin-left: 20px;
 }
 
-.item-expanded.collapsed {
+.config-subitems.collapsed {
   display: none;
 }
 
-.subfile {
+/* Config Subitem (folder children) */
+.config-subitem {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 10px;
+  padding: 4px 8px;
+  margin-left: 24px;
   border-radius: 4px;
   cursor: pointer;
   transition: background 0.15s;
 }
 
-.subfile:hover {
+.config-subitem:hover {
   background: var(--vscode-list-hoverBackground);
 }
 
-.subfile-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.subfile-icon svg {
+.config-subitem .config-item-icon svg {
   width: 14px;
   height: 14px;
 }
 
-.subfile-name {
+.config-subitem .config-item-name {
   font-size: 11px;
-  color: var(--vscode-foreground);
+  color: var(--vscode-descriptionForeground);
+}
+
+/* Empty card body */
+.card-empty {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  text-align: center;
+  padding: 16px 8px;
+  font-style: italic;
+  opacity: 0.7;
 }
 
 /* Empty State */
@@ -429,9 +405,13 @@ body {
 }
 
 .empty-icon {
-  font-size: 48px;
   margin-bottom: 16px;
   opacity: 0.5;
+}
+
+.empty-icon svg {
+  width: 48px;
+  height: 48px;
 }
 
 .empty-title {
@@ -701,6 +681,38 @@ body {
   background: var(--vscode-list-hoverBackground);
 }
 
+/* Task Scope Toggle */
+.task-scope-toggle {
+  display: flex;
+  margin-left: auto;
+  background: var(--vscode-input-background);
+  border-radius: 6px;
+  padding: 2px;
+  gap: 2px;
+}
+
+.task-scope-btn {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 10px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--vscode-descriptionForeground);
+  background: transparent;
+  transition: all 0.15s;
+}
+
+.task-scope-btn:hover {
+  color: var(--vscode-foreground);
+}
+
+.task-scope-btn.active {
+  background: var(--vscode-button-secondaryBackground, rgba(255,255,255,0.1));
+  color: var(--vscode-foreground);
+  font-weight: 600;
+}
+
 /* Task Board */
 .task-board {
   display: grid;
@@ -892,5 +904,4 @@ body {
 }
 
 ${INSIGHTS_STYLES}
-`;
-
+`

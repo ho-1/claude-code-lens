@@ -3,22 +3,22 @@
  * Feature 1: Heatmap + hour-of-day chart + KPI cards
  */
 
-import { InsightsData } from '../../insightsTypes';
-import { renderHeatmapSvg, HeatmapDay } from '../charts/heatmap';
-import { renderVerticalBarChartSvg } from '../charts/barChart';
+import { InsightsData } from '../../insightsTypes'
+import { renderHeatmapSvg, HeatmapDay } from '../charts/heatmap'
+import { renderVerticalBarChartSvg } from '../charts/barChart'
 
 export function renderActivitySection(insights: InsightsData): string {
-  const stats = insights.statsCache;
-  if (!stats) return '';
+  const stats = insights.statsCache
+  if (!stats) return ''
 
-  const { dailyActivity, hourCounts, totalSessions, totalMessages, firstSessionDate } = stats;
+  const { dailyActivity, hourCounts, totalSessions, totalMessages, firstSessionDate } = stats
 
   // KPI cards
-  const totalDays = dailyActivity.length;
-  const avgMsgPerDay = totalDays > 0 ? Math.round(totalMessages / totalDays) : 0;
-  const avgSessionsPerDay = totalDays > 0 ? Math.round(totalSessions / totalDays) : 0;
-  const totalToolCalls = dailyActivity.reduce((s, d) => s + d.toolCallCount, 0);
-  const startDate = firstSessionDate ? new Date(firstSessionDate).toLocaleDateString() : 'N/A';
+  const totalDays = dailyActivity.length
+  const avgMsgPerDay = totalDays > 0 ? Math.round(totalMessages / totalDays) : 0
+  const avgSessionsPerDay = totalDays > 0 ? Math.round(totalSessions / totalDays) : 0
+  const totalToolCalls = dailyActivity.reduce((s, d) => s + d.toolCallCount, 0)
+  const startDate = firstSessionDate ? new Date(firstSessionDate).toLocaleDateString() : 'N/A'
 
   const kpiCards = `
   <div class="insights-kpi-row">
@@ -46,33 +46,33 @@ export function renderActivitySection(insights: InsightsData): string {
       <div class="kpi-value">${avgSessionsPerDay}</div>
       <div class="kpi-label">Avg Sessions/Day</div>
     </div>
-  </div>`;
+  </div>`
 
   // Activity heatmap
-  const heatmapData: HeatmapDay[] = dailyActivity.map(d => ({
+  const heatmapData: HeatmapDay[] = dailyActivity.map((d) => ({
     date: d.date,
     value: d.messageCount,
-  }));
+  }))
 
   const heatmap = `
   <div class="insights-chart-container">
     <div class="chart-subtitle">Message Activity</div>
     <div class="chart-scroll">${renderHeatmapSvg({ data: heatmapData })}</div>
-  </div>`;
+  </div>`
 
   // Hour of day chart
-  const hourData = [];
+  const hourData = []
   for (let h = 0; h < 24; h++) {
-    const count = hourCounts[String(h)] || 0;
-    const label = `${h}`;
-    hourData.push({ label, value: count, color: getHourColor(h) });
+    const count = hourCounts[String(h)] || 0
+    const label = `${h}`
+    hourData.push({ label, value: count, color: getHourColor(h) })
   }
 
   const hourChart = `
   <div class="insights-chart-container">
     <div class="chart-subtitle">Activity by Hour (Sessions)</div>
     ${renderVerticalBarChartSvg({ data: hourData, width: 500 })}
-  </div>`;
+  </div>`
 
   return `
   <div class="insights-section-block">
@@ -86,13 +86,13 @@ export function renderActivitySection(insights: InsightsData): string {
     ${kpiCards}
     ${heatmap}
     ${hourChart}
-  </div>`;
+  </div>`
 }
 
 function getHourColor(hour: number): string {
   // Night: dark blue, Morning: green, Afternoon: yellow, Evening: orange
-  if (hour >= 0 && hour < 6) return '#4A5568';
-  if (hour >= 6 && hour < 12) return '#26a641';
-  if (hour >= 12 && hour < 18) return '#F6AD55';
-  return '#FC8181';
+  if (hour >= 0 && hour < 6) return '#4A5568'
+  if (hour >= 6 && hour < 12) return '#26a641'
+  if (hour >= 12 && hour < 18) return '#F6AD55'
+  return '#FC8181'
 }

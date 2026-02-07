@@ -2,5 +2,5 @@
  * Re-export all utilities
  */
 
-export * from './iconUtils';
-export * from './statsCalculator';
+export * from './iconUtils'
+export * from './statsCalculator'

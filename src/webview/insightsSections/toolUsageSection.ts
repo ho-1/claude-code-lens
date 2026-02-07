@@ -3,31 +3,34 @@
  * Feature 4: Tool call trends + KPI cards
  */
 
-import { InsightsData } from '../../insightsTypes';
-import { renderLineChartSvg } from '../charts/lineChart';
-import { renderSparklineSvg } from '../charts/sparkline';
+import { InsightsData } from '../../insightsTypes'
+import { renderLineChartSvg } from '../charts/lineChart'
+import { renderSparklineSvg } from '../charts/sparkline'
 
 export function renderToolUsageSection(insights: InsightsData): string {
-  const stats = insights.statsCache;
-  if (!stats) return '';
+  const stats = insights.statsCache
+  if (!stats) return ''
 
-  const { dailyActivity } = stats;
-  if (dailyActivity.length === 0) return '';
+  const { dailyActivity } = stats
+  if (dailyActivity.length === 0) return ''
 
-  const totalToolCalls = dailyActivity.reduce((s, d) => s + d.toolCallCount, 0);
-  const totalMessages = dailyActivity.reduce((s, d) => s + d.messageCount, 0);
-  const totalSessions = dailyActivity.reduce((s, d) => s + d.sessionCount, 0);
-  const avgToolsPerSession = totalSessions > 0 ? (totalToolCalls / totalSessions).toFixed(1) : '0';
-  const avgToolsPerDay = dailyActivity.length > 0 ? Math.round(totalToolCalls / dailyActivity.length) : 0;
-  const toolToMsgRatio = totalMessages > 0 ? (totalToolCalls / totalMessages).toFixed(2) : '0';
+  const totalToolCalls = dailyActivity.reduce((s, d) => s + d.toolCallCount, 0)
+  const totalMessages = dailyActivity.reduce((s, d) => s + d.messageCount, 0)
+  const totalSessions = dailyActivity.reduce((s, d) => s + d.sessionCount, 0)
+  const avgToolsPerSession = totalSessions > 0 ? (totalToolCalls / totalSessions).toFixed(1) : '0'
+  const avgToolsPerDay =
+    dailyActivity.length > 0 ? Math.round(totalToolCalls / dailyActivity.length) : 0
+  const toolToMsgRatio = totalMessages > 0 ? (totalToolCalls / totalMessages).toFixed(2) : '0'
 
   // Peak day
-  const peakDay = dailyActivity.reduce((max, d) => d.toolCallCount > max.toolCallCount ? d : max, dailyActivity[0]);
+  const peakDay = dailyActivity.reduce(
+    (max, d) => (d.toolCallCount > max.toolCallCount ? d : max),
+    dailyActivity[0],
+  )
 
   // KPI cards with sparklines
-  const toolCallValues = dailyActivity.map(d => d.toolCallCount);
-  const msgValues = dailyActivity.map(d => d.messageCount);
-  const sessionValues = dailyActivity.map(d => d.sessionCount);
+  const toolCallValues = dailyActivity.map((d) => d.toolCallCount)
+  const sessionValues = dailyActivity.map((d) => d.sessionCount)
 
   const kpiCards = `
   <div class="insights-kpi-row">
@@ -49,20 +52,20 @@ export function renderToolUsageSection(insights: InsightsData): string {
       <div class="kpi-value">${toolToMsgRatio}</div>
       <div class="kpi-label">Tools/Message Ratio</div>
     </div>
-  </div>`;
+  </div>`
 
   // Tool calls trend line chart
   const lineChart = renderLineChartSvg({
     series: [
       {
         label: 'Tool Calls',
-        data: dailyActivity.map(d => ({ x: d.date, y: d.toolCallCount })),
+        data: dailyActivity.map((d) => ({ x: d.date, y: d.toolCallCount })),
         color: '#3B82F6',
         fill: true,
       },
       {
         label: 'Sessions',
-        data: dailyActivity.map(d => ({ x: d.date, y: d.sessionCount * 10 })),
+        data: dailyActivity.map((d) => ({ x: d.date, y: d.sessionCount * 10 })),
         color: '#10B981',
         fill: false,
       },
@@ -70,7 +73,7 @@ export function renderToolUsageSection(insights: InsightsData): string {
     width: 500,
     height: 200,
     showLegend: true,
-  });
+  })
 
   return `
   <div class="insights-section-block">
@@ -86,5 +89,5 @@ export function renderToolUsageSection(insights: InsightsData): string {
       <div class="chart-subtitle">Daily Tool Calls & Sessions (×10)</div>
       ${lineChart}
     </div>
-  </div>`;
+  </div>`
 }
