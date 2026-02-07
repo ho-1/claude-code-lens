@@ -1,9 +1,9 @@
 /**
- * Team and Task view rendering for the dashboard
- * Shows agent team overview cards and task board
+ * Team view rendering for the dashboard
+ * Shows agent team overview cards
  */
 
-import { ScanResult, TeamConfig, TaskItem, TaskStatus, AgentTeamsSettings } from '../types';
+import { ScanResult, TeamConfig, AgentTeamsSettings } from '../types';
 import { COLORS } from '../constants/colors';
 import { SVG_ICONS } from '../constants/icons';
 import { escapeHtml } from '../utils/escapeHtml';
@@ -17,11 +17,8 @@ export function renderTeamView(result: ScanResult): string {
   return `
   <div class="team-view">
     ${renderSettingsBanner(agentTeamsSettings)}
-    ${teamData.teams.length > 0 || teamData.tasks.length > 0
-      ? `
-        ${renderTeamOverview(teamData.teams)}
-        ${renderTaskBoard(teamData.tasks)}
-      `
+    ${teamData.teams.length > 0
+      ? renderTeamOverview(teamData.teams)
       : renderTeamEmptyState(agentTeamsSettings)
     }
   </div>`;
@@ -105,87 +102,6 @@ function renderTeamCard(team: TeamConfig): string {
 }
 
 /**
- * Render task board (Kanban-style)
- */
-function renderTaskBoard(tasks: TaskItem[]): string {
-  if (tasks.length === 0) return '';
-
-  const pending = tasks.filter(t => t.status === 'pending');
-  const inProgress = tasks.filter(t => t.status === 'in_progress');
-  const completed = tasks.filter(t => t.status === 'completed');
-
-  // Calculate progress
-  const completionRate = tasks.length > 0 ? Math.round((completed.length / tasks.length) * 100) : 0;
-
-  return `
-  <div class="team-section">
-    <div class="team-section-header">
-      <span class="team-section-icon">${SVG_ICONS.task(COLORS.task)}</span>
-      <span class="team-section-title">Task Board</span>
-      <span class="team-section-count">${tasks.length}</span>
-    </div>
-    <div class="task-progress-bar">
-      <div class="task-progress-fill" style="width: ${completionRate}%"></div>
-      <span class="task-progress-text">${completionRate}% complete</span>
-    </div>
-    <div class="task-board">
-      ${renderTaskColumn('In Progress', inProgress, 'in_progress', COLORS.target)}
-      ${renderTaskColumn('Pending', pending, 'pending', '#F59E0B')}
-      ${renderTaskColumn('Completed', completed, 'completed', COLORS.terminal)}
-    </div>
-  </div>`;
-}
-
-/**
- * Render a task board column
- */
-function renderTaskColumn(title: string, tasks: TaskItem[], status: TaskStatus, color: string): string {
-  const statusIcon = status === 'completed'
-    ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`
-    : status === 'in_progress'
-    ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`
-    : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>`;
-
-  return `
-  <div class="task-column" data-status="${status}">
-    <div class="task-column-header" style="border-color: ${color}">
-      <span class="task-column-icon">${statusIcon}</span>
-      <span class="task-column-title">${title}</span>
-      <span class="task-column-count" style="background: ${color}20; color: ${color}">${tasks.length}</span>
-    </div>
-    <div class="task-column-body">
-      ${tasks.length > 0
-        ? tasks.map(task => renderTaskCard(task, color)).join('')
-        : '<div class="task-empty">No tasks</div>'
-      }
-    </div>
-  </div>`;
-}
-
-/**
- * Render a single task card
- */
-function renderTaskCard(task: TaskItem, accentColor: string): string {
-  const hasBlockers = task.blockedBy && task.blockedBy.length > 0;
-  const hasBlocks = task.blocks && task.blocks.length > 0;
-
-  return `
-  <div class="task-card ${hasBlockers ? 'task-blocked' : ''}" data-task-path="${escapeHtml(task.filePath)}">
-    <div class="task-card-header">
-      <span class="task-card-id" style="color: ${accentColor}">#${escapeHtml(task.id)}</span>
-      ${task.owner ? `<span class="task-card-owner">@${escapeHtml(task.owner)}</span>` : ''}
-    </div>
-    <div class="task-card-subject">${escapeHtml(task.subject)}</div>
-    ${task.description ? `<div class="task-card-desc">${escapeHtml(task.description.slice(0, 120))}${task.description.length > 120 ? '...' : ''}</div>` : ''}
-    <div class="task-card-footer">
-      <span class="task-card-team">${escapeHtml(task.teamName)}</span>
-      ${hasBlockers ? `<span class="task-dep task-dep-blocked" title="Blocked by: ${escapeHtml(task.blockedBy!.join(', '))}">Blocked</span>` : ''}
-      ${hasBlocks ? `<span class="task-dep task-dep-blocks" title="Blocks: ${escapeHtml(task.blocks!.join(', '))}">Blocks ${task.blocks!.length}</span>` : ''}
-    </div>
-  </div>`;
-}
-
-/**
  * Render empty state for teams
  */
 function renderTeamEmptyState(settings: AgentTeamsSettings): string {
@@ -202,7 +118,7 @@ function renderTeamEmptyState(settings: AgentTeamsSettings): string {
       }
     </div>
     <div class="team-empty-hint">
-      Teams are stored at <code>~/.claude/teams/</code> and tasks at <code>~/.claude/tasks/</code>
+      Teams are stored at <code>~/.claude/teams/</code>
     </div>
   </div>`;
 }
@@ -219,11 +135,5 @@ export function getTeamViewScripts(): string {
       });
     });
 
-    // Task card click - open task file
-    document.querySelectorAll('.task-card[data-task-path]').forEach(card => {
-      card.addEventListener('click', () => {
-        vscode.postMessage({ type: 'openFile', path: card.dataset.taskPath });
-      });
-    });
-  `;
+`;
 }

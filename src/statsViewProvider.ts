@@ -236,13 +236,6 @@ export class StatsViewProvider implements vscode.WebviewViewProvider {
         : '<div class="dropdown-empty">No teams found</div>'
       }
     </div>
-    <div class="stat-card">
-      <span class="stat-icon">${icons.task}</span>
-      <div class="stat-info">
-        <span class="stat-value">${stats.tasks}</span>
-        <span class="stat-label">Tasks</span>
-      </div>
-    </div>
   </div>
   <button class="dashboard-btn" id="openDashboard">
     <svg viewBox="0 0 16 16" fill="currentColor">
